@@ -1,0 +1,48 @@
+<.header>
+  Listing Shifts
+  <:actions>
+    <.link patch={~p"/shifts/new"}>
+      <.button>New Shift</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="shifts"
+  rows={@streams.shifts}
+  row_click={fn {_id, shift} -> JS.navigate(~p"/shifts/#{shift}") end}
+>
+  <:col :let={{_id, shift}} label="Start time">{shift.start_time}</:col>
+  <:col :let={{_id, shift}} label="End time">{shift.end_time}</:col>
+  <:col :let={{_id, shift}} label="Description">{shift.description}</:col>
+  <:action :let={{_id, shift}}>
+    <div class="sr-only">
+      <.link navigate={~p"/shifts/#{shift}"}>Show</.link>
+    </div>
+    <.link patch={~p"/shifts/#{shift}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, shift}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: shift.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal
+  :if={@live_action in [:new, :edit]}
+  id="shift-modal"
+  show
+  on_cancel={JS.patch(~p"/shifts")}
+>
+  <.live_component
+    module={RosterAppWeb.ShiftLive.FormComponent}
+    id={@shift.id || :new}
+    title={@page_title}
+    action={@live_action}
+    shift={@shift}
+    patch={~p"/shifts"}
+  />
+</.modal>

@@ -12,7 +12,7 @@ defmodule RosterApp.Orgs.UserQualification do
   @doc false
   def changeset(user_qualification, attrs) do
     user_qualification
-    |> cast(attrs, [])
-    |> validate_required([])
+    |> cast(attrs, [:user_id, :work_type_id])
+    |> validate_required([:user_id, :work_type_id])
   end
 end

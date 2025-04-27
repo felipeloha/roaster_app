@@ -12,7 +12,7 @@ defmodule RosterApp.Orgs.UserDepartment do
   @doc false
   def changeset(user_department, attrs) do
     user_department
-    |> cast(attrs, [])
-    |> validate_required([])
+    |> cast(attrs, [:user_id, :department_id])
+    |> validate_required([:user_id, :department_id])
   end
 end

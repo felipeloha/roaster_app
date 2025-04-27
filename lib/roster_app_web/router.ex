@@ -82,4 +82,26 @@ defmodule RosterAppWeb.Router do
       live "/users/confirm", UserConfirmationInstructionsLive, :new
     end
   end
+
+  # TODO remove later if we dont want manager related routes
+  #  scope "/manager", RosterAppWeb do
+  #    # and manager role check
+  #    pipe_through [:browser, :require_authenticated_user]
+  #
+  #    live "/shifts", ShiftLive.Index, :index
+  #    live "/shifts/new", ShiftLive.Index, :new
+  #    live "/shifts/:id/edit", ShiftLive.Index, :edit
+  #  end
+
+  scope "/", RosterAppWeb do
+    # or your auth plug
+    pipe_through [:browser, :require_authenticated_user]
+
+    live "/shifts", ShiftLive.Index, :index
+    live "/shifts/new", ShiftLive.Index, :new
+    live "/shifts/:id/edit", ShiftLive.Index, :edit
+
+    live "/shifts/:id", ShiftLive.Show, :show
+    live "/shifts/:id/show/edit", ShiftLive.Show, :edit
+  end
 end

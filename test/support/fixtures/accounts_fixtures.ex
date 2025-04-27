@@ -28,4 +28,22 @@ defmodule RosterApp.AccountsFixtures do
     [_, token | _] = String.split(captured_email.text_body, "[TOKEN]")
     token
   end
+
+  alias RosterApp.Orgs
+
+  def work_type_fixture(attrs \\ %{}) do
+    attrs
+    |> Enum.into(%{
+      name: "Cleaning"
+    })
+    |> Orgs.create_work_type()
+  end
+
+  def department_fixture(attrs \\ %{}) do
+    attrs
+    |> Enum.into(%{
+      name: "Maintenance"
+    })
+    |> Orgs.create_department()
+  end
 end
