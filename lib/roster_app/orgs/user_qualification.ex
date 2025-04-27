@@ -1,0 +1,18 @@
+defmodule RosterApp.Orgs.UserQualification do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  schema "user_qualifications" do
+    field :user_id, :id
+    field :work_type_id, :id
+
+    timestamps(type: :utc_datetime)
+  end
+
+  @doc false
+  def changeset(user_qualification, attrs) do
+    user_qualification
+    |> cast(attrs, [])
+    |> validate_required([])
+  end
+end
