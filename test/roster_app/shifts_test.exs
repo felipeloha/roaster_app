@@ -85,7 +85,7 @@ defmodule RosterApp.ShiftsTest do
 
       {:ok, worker} =
         Accounts.register_user(%{
-          email: "worker@example.com",
+          email: "worker_shift@example.com",
           password: "password1234567894",
           role: "worker"
         })

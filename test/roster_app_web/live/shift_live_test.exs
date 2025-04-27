@@ -17,19 +17,11 @@ defmodule RosterAppWeb.ShiftLiveTest do
   }
   @invalid_attrs %{description: nil, start_time: nil, end_time: nil}
 
-  def log_in_user_test(conn, user) do
-    token = RosterApp.Accounts.generate_user_session_token(user)
-
-    conn
-    |> Phoenix.ConnTest.init_test_session(%{})
-    |> Plug.Conn.put_session(:user_token, token)
-  end
-
   describe "Index" do
     setup %{conn: conn} do
-      user = user_fixture(%{role: "manager"})
+      user = user_fixture(%{role: "manager", email: "shift_man@mail.com"})
       shift = shift_fixture()
-      %{conn: log_in_user_test(conn, user), user: user, shift: shift}
+      %{conn: log_in_user(conn, user), user: user, shift: shift}
     end
 
     test "lists all shifts", %{conn: conn, shift: shift} do
@@ -98,7 +90,7 @@ defmodule RosterAppWeb.ShiftLiveTest do
     setup %{conn: conn} do
       user = user_fixture(%{role: "manager"})
       shift = shift_fixture()
-      %{conn: log_in_user_test(conn, user), user: user, shift: shift}
+      %{conn: log_in_user(conn, user), user: user, shift: shift}
     end
 
     test "displays shift", %{conn: conn, shift: shift} do

@@ -5,6 +5,22 @@ defmodule RosterApp.Orgs do
   alias RosterApp.Orgs.{Department, WorkType, UserDepartment, UserQualification}
   alias RosterApp.Accounts.User
 
+  def day_map() do
+    %{
+      1 => "Monday",
+      2 => "Tuesday",
+      3 => "Wednesday",
+      4 => "Thursday",
+      5 => "Friday",
+      6 => "Saturday",
+      7 => "Sunday"
+    }
+  end
+
+  def day_map_as_tuples() do
+    Enum.map(day_map(), fn {key, value} -> {value, key} end)
+  end
+
   def list_work_types() do
     Repo.all(WorkType)
   end
@@ -50,5 +66,101 @@ defmodule RosterApp.Orgs do
         |> UserQualification.changeset(%{user_id: user_id, work_type_id: work_type_id})
         |> Repo.insert()
     end
+  end
+
+  alias RosterApp.Orgs.Absences
+
+  @doc """
+  Returns the list of absences.
+
+  ## Examples
+
+      iex> list_absences()
+      [%Absences{}, ...]
+
+  """
+  def list_absences do
+    Repo.all(Absences)
+  end
+
+  @doc """
+  Gets a single absences.
+
+  Raises `Ecto.NoResultsError` if the Absences does not exist.
+
+  ## Examples
+
+      iex> get_absences!(123)
+      %Absences{}
+
+      iex> get_absences!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_absences!(id), do: Repo.get!(Absences, id)
+
+  @doc """
+  Creates a absences.
+
+  ## Examples
+
+      iex> create_absences(%{field: value})
+      {:ok, %Absences{}}
+
+      iex> create_absences(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_absences(attrs \\ %{}) do
+    %Absences{}
+    |> Absences.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a absences.
+
+  ## Examples
+
+      iex> update_absences(absences, %{field: new_value})
+      {:ok, %Absences{}}
+
+      iex> update_absences(absences, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_absences(%Absences{} = absences, attrs) do
+    absences
+    |> Absences.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a absences.
+
+  ## Examples
+
+      iex> delete_absences(absences)
+      {:ok, %Absences{}}
+
+      iex> delete_absences(absences)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_absences(%Absences{} = absences) do
+    Repo.delete(absences)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking absences changes.
+
+  ## Examples
+
+      iex> change_absences(absences)
+      %Ecto.Changeset{data: %Absences{}}
+
+  """
+  def change_absences(%Absences{} = absences, attrs \\ %{}) do
+    Absences.changeset(absences, attrs)
   end
 end

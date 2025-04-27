@@ -104,4 +104,15 @@ defmodule RosterAppWeb.Router do
     live "/shifts/:id", ShiftLive.Show, :show
     live "/shifts/:id/show/edit", ShiftLive.Show, :edit
   end
+
+  scope "/", RosterAppWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live "/absences", AbsencesLive.Index, :index
+    live "/absences/new", AbsencesLive.Index, :new
+    live "/absences/:id/edit", AbsencesLive.Index, :edit
+
+    live "/absences/:id", AbsencesLive.Show, :show
+    live "/absences/:id/show/edit", AbsencesLive.Show, :edit
+  end
 end

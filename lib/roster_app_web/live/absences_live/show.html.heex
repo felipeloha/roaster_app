@@ -1,0 +1,33 @@
+<.header>
+  Absences {@absences.id}
+  <:subtitle>This is a absences record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/absences/#{@absences}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit absences</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Unavailable days">
+    {Enum.map_join(@absences.unavailable_days, ", ", &Orgs.day_map()[&1])}
+  </:item>
+</.list>
+
+<.back navigate={~p"/absences"}>Back to absences</.back>
+
+<.modal
+  :if={@live_action == :edit}
+  id="absences-modal"
+  show
+  on_cancel={JS.patch(~p"/absences/#{@absences}")}
+>
+  <.live_component
+    module={RosterAppWeb.AbsencesLive.FormComponent}
+    id={@absences.id}
+    title={@page_title}
+    action={@live_action}
+    absences={@absences}
+    patch={~p"/absences/#{@absences}"}
+  />
+</.modal>

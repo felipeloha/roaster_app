@@ -1,0 +1,48 @@
+<.header>
+  Listing Absences
+  <:actions>
+    <.link patch={~p"/absences/new"}>
+      <.button>New Absences</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="absences"
+  rows={@streams.absences_collection}
+  row_click={fn {_id, absences} -> JS.navigate(~p"/absences/#{absences}") end}
+>
+  <:col :let={{id, absences}} label="Unavailable days">
+    {Enum.map_join(absences.unavailable_days, ", ", &Orgs.day_map()[&1])}
+  </:col>
+  <:action :let={{_id, absences}}>
+    <div class="sr-only">
+      <.link navigate={~p"/absences/#{absences}"}>Show</.link>
+    </div>
+    <.link patch={~p"/absences/#{absences}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, absences}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: absences.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal
+  :if={@live_action in [:new, :edit]}
+  id="absences-modal"
+  show
+  on_cancel={JS.patch(~p"/absences")}
+>
+  <.live_component
+    module={RosterAppWeb.AbsencesLive.FormComponent}
+    id={@absences.id || :new}
+    title={@page_title}
+    action={@live_action}
+    absences={@absences}
+    patch={~p"/absences"}
+  />
+</.modal>
