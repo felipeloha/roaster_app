@@ -12,7 +12,7 @@
   rows={@streams.absences_collection}
   row_click={fn {_id, absences} -> JS.navigate(~p"/absences/#{absences}") end}
 >
-  <:col :let={{id, absences}} label="Unavailable days">
+  <:col :let={{_id, absences}} label="Unavailable days">
     {Enum.map_join(absences.unavailable_days, ", ", &Orgs.day_map()[&1])}
   </:col>
   <:action :let={{_id, absences}}>

@@ -109,24 +109,27 @@ defmodule RosterApp.Shifts do
         department_id: dept_id,
         work_type_id: type_id
       }) do
-    from(u in User,
-      as: :u,
-      join: d in assoc(u, :departments),
-      join: w in assoc(u, :work_types),
-      where: d.id == ^dept_id and w.id == ^type_id,
-      where:
-        not exists(
-          from a in RosterApp.Workers.Availability,
-            where:
-              a.user_id == parent_as(:u).id and
-                fragment(
-                  "? = ANY(?)",
-                  fragment("EXTRACT(DOW FROM ?)", ^start_time),
-                  a.excluded_days
-                ),
-            select: 1
-        )
-    )
+    query =
+      from(u in User,
+        as: :u,
+        join: d in assoc(u, :departments),
+        join: w in assoc(u, :work_types),
+        where: d.id == ^dept_id and w.id == ^type_id,
+        where:
+          not exists(
+            from a in RosterApp.Orgs.Absences,
+              where:
+                a.user_id == parent_as(:u).id and
+                  fragment(
+                    "EXTRACT(DOW FROM CAST(? AS timestamp))::int = ANY(?)",
+                    ^start_time,
+                    a.unavailable_days
+                  ),
+              select: 1
+          )
+      )
+
+    query
     |> Repo.all()
   end
 end

@@ -3,8 +3,11 @@ defmodule RosterApp.Orgs.UserQualification do
   import Ecto.Changeset
 
   schema "user_qualifications" do
-    field :user_id, :id
-    field :work_type_id, :id
+    # field :user_id, :id
+    # field :work_type_id, :id
+
+    belongs_to :user, RosterApp.Accounts.User
+    belongs_to :work_type, RosterApp.Orgs.WorkType
 
     timestamps(type: :utc_datetime)
   end

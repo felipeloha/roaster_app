@@ -12,7 +12,9 @@ defmodule RosterApp.Orgs.Absences do
   @doc false
   def changeset(absences, attrs) do
     absences
-    |> cast(attrs, [:unavailable_days])
+    |> cast(attrs, [:unavailable_days, :user_id])
+    # TODO validate and pass from liveview
+    # |> validate_required([:unavailable_days, :user_id])
     |> update_change(:unavailable_days, fn days -> Enum.uniq(days) end)
   end
 end

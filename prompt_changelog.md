@@ -216,10 +216,12 @@ Pick one full feature (e.g. “Manager creates shift”)
 
 Would you like to begin with Phase 1, and I’ll walk you through the Mix commands, migrations, and setup?
 
-After this point it gets difficult to work with chatGPT because the context is lost and the conversation is not saved.
-I also tried github copilit in the hope that it would get the context of the project but it was not able to do so.
+Phase 2 and 3 were implemented.
 
-it forgot the orgs context, the work types, departments etc
+At this point, it gets challenging to work with chatGPT because the context is lost and the conversation is not saved.
+I also tried GitHub Copilot in the hope that it would get the context of the project, but it was not able to do so.
+
+it forgot the orgs context, the work types, departments, etc.
 and forgot some functions in accounts
 
 
@@ -230,5 +232,9 @@ and forgot some functions in accounts
 - store dates with timezone
 
 decision points:
-- absences are just an array of days of the week.
-- this is a big product debt as people might have specific absences for weeks or the absence could be time related
+- absences are just an array of days of the week. 
+this is a big product debt as people might have specific absences for weeks or the absence could be time related
+- solve the timezone problem. 
+Not even personio does it right, and I didn't put time on it in favor of building the core functionality for one timezone
+
+Around 4-5h so far. Phoenix forms took me a bit of time, but I still did not understand how to use them properly.

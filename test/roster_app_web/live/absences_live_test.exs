@@ -42,7 +42,9 @@ defmodule RosterAppWeb.AbsencesLiveTest do
     test "updates absences in listing", %{conn: conn, absences: absences} do
       {:ok, index_live, _html} = live(conn, ~p"/absences")
 
-      assert index_live |> element("#absences_collection-#{absences.id} a", "Edit") |> render_click() =~
+      assert index_live
+             |> element("#absences_collection-#{absences.id} a", "Edit")
+             |> render_click() =~
                "Edit Absences"
 
       assert_patch(index_live, ~p"/absences/#{absences}/edit")
@@ -60,7 +62,10 @@ defmodule RosterAppWeb.AbsencesLiveTest do
     test "deletes absences in listing", %{conn: conn, absences: absences} do
       {:ok, index_live, _html} = live(conn, ~p"/absences")
 
-      assert index_live |> element("#absences_collection-#{absences.id} a", "Delete") |> render_click()
+      assert index_live
+             |> element("#absences_collection-#{absences.id} a", "Delete")
+             |> render_click()
+
       refute has_element?(index_live, "#absences_collection-#{absences.id}")
     end
   end

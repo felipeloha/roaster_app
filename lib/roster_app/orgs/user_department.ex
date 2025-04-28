@@ -3,8 +3,11 @@ defmodule RosterApp.Orgs.UserDepartment do
   import Ecto.Changeset
 
   schema "user_departments" do
-    field :user_id, :id
-    field :department_id, :id
+    # field :user_id, :id
+    # field :department_id, :id
+
+    belongs_to :user, RosterApp.Accounts.User
+    belongs_to :department, RosterApp.Orgs.Department
 
     timestamps(type: :utc_datetime)
   end
