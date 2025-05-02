@@ -20,7 +20,7 @@ defmodule RosterAppWeb.Router do
   scope "/", RosterAppWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", UserLoginLive, :new
   end
 
   # Other scopes may use custom stacks.

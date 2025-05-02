@@ -1,6 +1,6 @@
 <.header>
   Listing Shifts
-  <:actions>
+  <:actions :if={@current_user.role == "manager"}>
     <.link patch={~p"/shifts/new"}>
       <.button>New Shift</.button>
     </.link>

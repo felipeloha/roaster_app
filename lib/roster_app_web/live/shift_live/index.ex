@@ -3,10 +3,18 @@ defmodule RosterAppWeb.ShiftLive.Index do
 
   alias RosterApp.Shifts
   alias RosterApp.Shifts.Shift
+  alias RosterApp.Accounts
 
   @impl true
-  def mount(_params, _session, socket) do
-    {:ok, stream(socket, :shifts, Shifts.list_shifts())}
+  def mount(_params, %{"user_token" => user_token} = _session, socket) do
+    user = Accounts.get_user_by_session_token(user_token)
+
+    {
+      :ok,
+      socket
+      |> assign(:current_user, user)
+      |> stream(:shifts, Shifts.list_shifts())
+    }
   end
 
   @impl true

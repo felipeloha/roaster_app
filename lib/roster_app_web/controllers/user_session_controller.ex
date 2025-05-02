@@ -23,6 +23,7 @@ defmodule RosterAppWeb.UserSessionController do
 
     if user = Accounts.get_user_by_email_and_password(email, password) do
       conn
+      |> put_session(:user_return_to, "/shifts")
       |> put_flash(:info, info)
       |> UserAuth.log_in_user(user, user_params)
     else

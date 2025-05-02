@@ -35,9 +35,18 @@ defmodule RosterAppWeb.UserLoginLive do
     """
   end
 
-  def mount(_params, _session, socket) do
-    email = Phoenix.Flash.get(socket.assigns.flash, :email)
-    form = to_form(%{"email" => email}, as: "user")
-    {:ok, assign(socket, form: form), temporary_assigns: [form: form]}
+  def mount(_params, session, socket) do
+    # if there is a user logged in we should redirect to shifts
+    with token <- Map.get(session, "user_token"),
+         %RosterApp.Accounts.User{} <-
+           token && RosterApp.Accounts.get_user_by_session_token(token) do
+      {:ok, socket |> redirect(to: ~p"/shifts")}
+    else
+      _ ->
+        # if there is no user logged in we should show the login form
+        email = Phoenix.Flash.get(session, :email)
+        form = to_form(%{"email" => email}, as: "user")
+        {:ok, assign(socket, form: form), temporary_assigns: [form: form]}
+    end
   end
 end
