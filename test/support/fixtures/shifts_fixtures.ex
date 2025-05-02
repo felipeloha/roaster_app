@@ -5,13 +5,16 @@ defmodule RosterApp.ShiftsFixtures do
   """
 
   import RosterApp.AccountsFixtures
+  alias RosterApp.Repo
 
   @doc """
   Generate a shift.
   """
   def shift_fixture(attrs \\ %{}) do
-    {:ok, work_type} = work_type_fixture()
-    {:ok, department} = department_fixture()
+    tenant = Repo.insert!(%RosterApp.Tenants.Tenant{name: "Test-Tenant"})
+    user = user_fixture(%{tenant_id: tenant.id})
+    {:ok, work_type} = work_type_fixture(%{tenant_id: tenant.id})
+    {:ok, department} = department_fixture(%{tenant_id: tenant.id})
 
     {:ok, shift} =
       attrs
@@ -20,7 +23,8 @@ defmodule RosterApp.ShiftsFixtures do
         end_time: ~U[2025-04-26 06:13:00Z],
         start_time: ~U[2025-04-26 06:12:00Z],
         work_type_id: work_type.id,
-        department_id: department.id
+        department_id: department.id,
+        tenant_id: user.tenant_id
       })
       |> RosterApp.Shifts.create_shift()
 

@@ -4,19 +4,25 @@ defmodule RosterApp.AccountsFixtures do
   entities via the `RosterApp.Accounts` context.
   """
 
+  alias RosterApp.Repo
+
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
   def valid_user_password, do: "hello world!"
 
   def valid_user_attributes(attrs \\ %{}) do
     Enum.into(attrs, %{
       email: unique_user_email(),
-      password: valid_user_password()
+      password: valid_user_password(),
+      tenant_id: 1
     })
   end
 
   def user_fixture(attrs \\ %{}) do
+    tenant = Repo.insert!(%RosterApp.Tenants.Tenant{name: "Test-Tenant"})
+
     {:ok, user} =
       attrs
+      |> Enum.into(%{tenant_id: tenant.id})
       |> valid_user_attributes()
       |> RosterApp.Accounts.register_user()
 

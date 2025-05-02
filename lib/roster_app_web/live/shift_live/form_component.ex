@@ -67,12 +67,17 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
 
   @impl true
   def handle_event("validate", %{"shift" => shift_params}, socket) do
-    changeset = Shifts.change_shift(socket.assigns.shift, shift_params)
+    changeset = Shifts.change_shift(socket.assigns.shift, with_tenant_id(socket, shift_params))
     {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
   end
 
   def handle_event("save", %{"shift" => shift_params}, socket) do
-    save_shift(socket, socket.assigns.action, shift_params)
+    save_shift(socket, socket.assigns.action, with_tenant_id(socket, shift_params))
+  end
+
+  defp with_tenant_id(socket, shift_params) do
+    user = socket.assigns.current_user
+    Map.put(shift_params, "tenant_id", user.tenant_id)
   end
 
   defp save_shift(socket, :edit, shift_params) do

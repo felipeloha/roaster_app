@@ -10,6 +10,7 @@ defmodule RosterApp.Shifts.Shift do
     belongs_to :work_type, RosterApp.Orgs.WorkType
     belongs_to :department, RosterApp.Orgs.Department
     belongs_to :assigned_user, RosterApp.Accounts.User, foreign_key: :assigned_user_id
+    belongs_to :tenant, RosterApp.Tenants.Tenant
 
     timestamps()
   end
@@ -22,9 +23,17 @@ defmodule RosterApp.Shifts.Shift do
       :description,
       :work_type_id,
       :department_id,
-      :assigned_user_id
+      :assigned_user_id,
+      :tenant_id
     ])
-    |> validate_required([:start_time, :end_time, :description, :work_type_id, :department_id])
+    |> validate_required([
+      :start_time,
+      :end_time,
+      :description,
+      :work_type_id,
+      :department_id,
+      :tenant_id
+    ])
     |> validate_change(:end_time, fn :end_time, end_time ->
       start_time = Map.get(attrs, :start_time)
 

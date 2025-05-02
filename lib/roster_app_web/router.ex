@@ -52,7 +52,6 @@ defmodule RosterAppWeb.Router do
 
     live_session :redirect_if_user_is_authenticated,
       on_mount: [{RosterAppWeb.UserAuth, :redirect_if_user_is_authenticated}] do
-      live "/users/register", UserRegistrationLive, :new
       live "/users/log_in", UserLoginLive, :new
       live "/users/reset_password", UserForgotPasswordLive, :new
       live "/users/reset_password/:token", UserResetPasswordLive, :edit
@@ -66,6 +65,7 @@ defmodule RosterAppWeb.Router do
 
     live_session :require_authenticated_user,
       on_mount: [{RosterAppWeb.UserAuth, :ensure_authenticated}] do
+      live "/users/register", UserRegistrationLive, :new
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
     end
@@ -82,16 +82,6 @@ defmodule RosterAppWeb.Router do
       live "/users/confirm", UserConfirmationInstructionsLive, :new
     end
   end
-
-  # TODO remove later if we dont want manager related routes
-  #  scope "/manager", RosterAppWeb do
-  #    # and manager role check
-  #    pipe_through [:browser, :require_authenticated_user]
-  #
-  #    live "/shifts", ShiftLive.Index, :index
-  #    live "/shifts/new", ShiftLive.Index, :new
-  #    live "/shifts/:id/edit", ShiftLive.Index, :edit
-  #  end
 
   scope "/", RosterAppWeb do
     # or your auth plug

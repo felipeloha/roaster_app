@@ -4,6 +4,7 @@ defmodule RosterApp.Orgs.WorkType do
 
   schema "work_types" do
     field :name, :string
+    belongs_to :tenant, RosterApp.Tenants.Tenant
 
     timestamps(type: :utc_datetime)
   end
@@ -11,7 +12,7 @@ defmodule RosterApp.Orgs.WorkType do
   @doc false
   def changeset(work_type, attrs) do
     work_type
-    |> cast(attrs, [:name])
-    |> validate_required([:name])
+    |> cast(attrs, [:name, :tenant_id])
+    |> validate_required([:name, :tenant_id])
   end
 end

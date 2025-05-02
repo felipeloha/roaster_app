@@ -97,7 +97,7 @@ defmodule RosterApp.AccountsTest do
   describe "change_user_registration/2" do
     test "returns a changeset" do
       assert %Ecto.Changeset{} = changeset = Accounts.change_user_registration(%User{})
-      assert changeset.required == [:password, :email]
+      assert changeset.required == [:password, :email, :tenant_id]
     end
 
     test "allows fields to be set" do
@@ -107,7 +107,7 @@ defmodule RosterApp.AccountsTest do
       changeset =
         Accounts.change_user_registration(
           %User{},
-          valid_user_attributes(email: email, password: password)
+          valid_user_attributes(email: email, password: password, tenant_id: 3)
         )
 
       assert changeset.valid?

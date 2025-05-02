@@ -23,15 +23,16 @@ defmodule RosterApp.ShiftsTest do
     end
 
     test "create_shift/1 with valid data creates a shift" do
-      {:ok, work_type} = work_type_fixture()
-      {:ok, department} = department_fixture()
+      {:ok, work_type} = work_type_fixture(%{tenant_id: 1})
+      {:ok, department} = department_fixture(%{tenant_id: 1})
 
       valid_attrs = %{
         description: "some description",
         start_time: ~U[2025-04-26 06:12:00Z],
         end_time: ~U[2025-04-26 06:13:00Z],
         work_type_id: work_type.id,
-        department_id: department.id
+        department_id: department.id,
+        tenant_id: 1
       }
 
       assert {:ok, %Shift{} = shift} = Shifts.create_shift(valid_attrs)
@@ -80,14 +81,15 @@ defmodule RosterApp.ShiftsTest do
   describe "create_shift/1" do
     setup do
       # Insert base data
-      {:ok, dept} = Orgs.create_department(%{name: "Support"})
-      {:ok, type} = Orgs.create_work_type(%{name: "Cleaning"})
+      {:ok, dept} = Orgs.create_department(%{name: "Support", tenant_id: 1})
+      {:ok, type} = Orgs.create_work_type(%{name: "Cleaning", tenant_id: 1})
 
       {:ok, worker} =
         Accounts.register_user(%{
           email: "worker_shift@example.com",
           password: "password1234567894",
-          role: "worker"
+          role: "worker",
+          tenant_id: 1
         })
 
       Orgs.assign_user_to_department(worker.id, dept.id)
@@ -102,7 +104,8 @@ defmodule RosterApp.ShiftsTest do
         end_time: ~U[2025-05-01 17:00:00Z],
         description: "Cleaning shift",
         department_id: dept.id,
-        work_type_id: type.id
+        work_type_id: type.id,
+        tenant_id: 1
       }
 
       assert {:ok, %Shift{} = shift} = Shifts.create_shift(valid_attrs)
@@ -130,7 +133,8 @@ defmodule RosterApp.ShiftsTest do
         description: "Morning cleanup",
         department_id: dept.id,
         work_type_id: type.id,
-        assigned_user_id: worker.id
+        assigned_user_id: worker.id,
+        tenant_id: 1
       }
 
       assert {:ok, shift} = Shifts.create_shift(shift_attrs)
@@ -217,23 +221,25 @@ defmodule RosterApp.ShiftsTest do
 
   describe "absences with shifts" do
     setup do
-      # Create a department and work type
-      {:ok, dept} = Orgs.create_department(%{name: "Logistics"})
-      {:ok, type} = Orgs.create_work_type(%{name: "Delivery"})
+      tenant = Repo.insert!(%RosterApp.Tenants.Tenant{name: "Test-Tenant"})
+      {:ok, dept} = Orgs.create_department(%{name: "Logistics", tenant_id: tenant.id})
+      {:ok, type} = Orgs.create_work_type(%{name: "Delivery", tenant_id: tenant.id})
 
       # Register users
       {:ok, user1} =
         Accounts.register_user(%{
           email: "user1@example.com",
           password: "password123111111",
-          role: "worker"
+          role: "worker",
+          tenant_id: tenant.id
         })
 
       {:ok, user2} =
         Accounts.register_user(%{
           email: "user2@example.com",
           password: "password123111111",
-          role: "worker"
+          role: "worker",
+          tenant_id: tenant.id
         })
 
       # Assign users to department and work type

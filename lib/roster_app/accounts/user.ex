@@ -11,6 +11,8 @@ defmodule RosterApp.Accounts.User do
     field :confirmed_at, :utc_datetime
     field :role, :string, default: "worker"
 
+    belongs_to :tenant, RosterApp.Tenants.Tenant
+
     has_many :user_departments, Orgs.UserDepartment
     has_many :departments, through: [:user_departments, :department]
 
@@ -45,7 +47,8 @@ defmodule RosterApp.Accounts.User do
   """
   def registration_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email, :password, :role])
+    |> cast(attrs, [:email, :password, :role, :tenant_id])
+    |> validate_required([:tenant_id])
     |> validate_inclusion(:role, ["manager", "worker"])
     |> validate_email(opts)
     |> validate_password(opts)

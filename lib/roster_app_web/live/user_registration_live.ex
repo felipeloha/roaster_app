@@ -54,6 +54,9 @@ defmodule RosterAppWeb.UserRegistrationLive do
   end
 
   def handle_event("save", %{"user" => user_params}, socket) do
+    user = socket.assigns.current_user
+    user_params = Map.put(user_params, "tenant_id", user.tenant_id)
+
     case Accounts.register_user(user_params) do
       {:ok, user} ->
         {:ok, _} =

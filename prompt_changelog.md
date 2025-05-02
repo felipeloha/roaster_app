@@ -230,6 +230,7 @@ and forgot some functions in accounts
 - permission management
 - remove phoenix landing page
 - store dates with timezone
+- registration broken as tenant is missing
 
 decision points:
 - absences are just an array of days of the week. 

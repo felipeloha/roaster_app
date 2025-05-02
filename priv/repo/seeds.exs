@@ -12,13 +12,23 @@
 
 alias RosterApp.Repo
 alias RosterApp.Accounts.User
+alias RosterApp.Tenants.Tenant
 alias RosterApp.Orgs.{Department, WorkType, UserDepartment, UserQualification}
+
+# insert tenant
+tenant = Repo.insert!(%Tenant{name: "Test-Tenant"})
 
 # pass123
 hashed = "$2b$12$n9WY8EkCGA6dR/ual5SyI.jt.xx5hqQZ.eBnU3BvDVQ8osKKJQ.vS"
 
 _manager =
-  Repo.insert!(%User{email: "manager@example.com", hashed_password: hashed, role: "manager"},
+  Repo.insert!(
+    %User{
+      email: "manager@example.com",
+      hashed_password: hashed,
+      role: "manager",
+      tenant_id: tenant.id
+    },
     on_conflict: [
       set: [
         hashed_password: hashed,
@@ -33,7 +43,8 @@ worker =
     %User{
       email: "worker@example.com",
       hashed_password: "$2b$12$n9WY8EkCGA6dR/ual5SyI.jt.xx5hqQZ.eBnU3BvDVQ8osKKJQ.vS",
-      role: "worker"
+      role: "worker",
+      tenant_id: tenant.id
     },
     on_conflict: [
       set: [
@@ -44,11 +55,11 @@ worker =
     conflict_target: :email
   )
 
-cleaning = Repo.insert!(%WorkType{name: "Cleaning"})
-_security = Repo.insert!(%WorkType{name: "Security"})
+cleaning = Repo.insert!(%WorkType{name: "Cleaning", tenant_id: tenant.id})
+_security = Repo.insert!(%WorkType{name: "Security", tenant_id: tenant.id})
 
-maintenance = Repo.insert!(%Department{name: "Maintenance"})
-_support = Repo.insert!(%Department{name: "Customer Support"})
+maintenance = Repo.insert!(%Department{name: "Maintenance", tenant_id: tenant.id})
+_support = Repo.insert!(%Department{name: "Customer Support", tenant_id: tenant.id})
 
 Repo.insert!(%UserQualification{user_id: worker.id, work_type_id: cleaning.id})
 Repo.insert!(%UserDepartment{user_id: worker.id, department_id: maintenance.id})
