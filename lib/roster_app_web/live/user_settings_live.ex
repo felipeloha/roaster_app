@@ -11,6 +11,9 @@ defmodule RosterAppWeb.UserSettingsLive do
     </.header>
 
     <div class="space-y-12 divide-y">
+      <p class="text-sm text-gray-500">Role: {@current_user.role}</p>
+    </div>
+    <div class="space-y-12 divide-y">
       <div>
         <.simple_form
           for={@email_form}
@@ -95,6 +98,7 @@ defmodule RosterAppWeb.UserSettingsLive do
       socket
       |> assign(:current_password, nil)
       |> assign(:email_form_current_password, nil)
+      |> assign(:current_user, user)
       |> assign(:current_email, user.email)
       |> assign(:email_form, to_form(email_changeset))
       |> assign(:password_form, to_form(password_changeset))

@@ -237,4 +237,4 @@ this is a big product debt as people might have specific absences for weeks or t
 - solve the timezone problem. 
 Not even personio does it right, and I didn't put time on it in favor of building the core functionality for one timezone
 
-Around 4-5h so far. Phoenix forms took me a bit of time, but I still did not understand how to use them properly.
+Around 4-5h so far
