@@ -7,7 +7,11 @@ defmodule RosterAppWeb.ShiftLive.Show do
   @impl true
   def mount(_params, %{"user_token" => user_token} = _session, socket) do
     user = Accounts.get_user_by_session_token(user_token)
-    {:ok, assign(socket, current_user: user)}
+
+    {:ok,
+     socket
+     |> assign(current_user: user)
+     |> assign(tenant_id: user.tenant_id)}
   end
 
   @impl true

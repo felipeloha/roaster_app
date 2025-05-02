@@ -18,8 +18,8 @@ defmodule RosterApp.Shifts do
       [%Shift{}, ...]
 
   """
-  def list_shifts do
-    Repo.all(Shift)
+  def list_shifts(tenant_id) do
+    Repo.all(from s in Shift, where: s.tenant_id == ^tenant_id)
   end
 
   @doc """

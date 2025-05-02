@@ -101,10 +101,11 @@ defmodule RosterAppWeb.AbsencesLive.FormComponent do
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
 
   defp get_full_absences_params(socket, absences_params) do
-    Map.put(
-      absences_params,
+    absences_params
+    |> Map.put(
       "unavailable_days",
       (previous_days(socket) ++ absences_params["unavailable_days"]) |> Enum.uniq()
     )
+    |> Map.put("user_id", socket.assigns.current_user.id)
   end
 end

@@ -11,7 +11,7 @@ defmodule RosterAppWeb.AbsencesLiveTest do
   describe "Index" do
     setup %{conn: conn} do
       user = user_fixture(%{role: "manager"})
-      absences = absences_fixture()
+      absences = absences_fixture(%{user_id: user.id})
       %{conn: log_in_user(conn, user), user: user, absences: absences}
     end
 

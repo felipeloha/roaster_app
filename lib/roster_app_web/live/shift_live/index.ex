@@ -13,7 +13,8 @@ defmodule RosterAppWeb.ShiftLive.Index do
       :ok,
       socket
       |> assign(:current_user, user)
-      |> stream(:shifts, Shifts.list_shifts())
+      |> assign(:tenant_id, user.tenant_id)
+      |> stream(:shifts, Shifts.list_shifts(user.tenant_id))
     }
   end
 

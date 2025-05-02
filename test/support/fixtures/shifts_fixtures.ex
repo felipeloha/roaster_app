@@ -11,10 +11,12 @@ defmodule RosterApp.ShiftsFixtures do
   Generate a shift.
   """
   def shift_fixture(attrs \\ %{}) do
-    tenant = Repo.insert!(%RosterApp.Tenants.Tenant{name: "Test-Tenant"})
-    user = user_fixture(%{tenant_id: tenant.id})
-    {:ok, work_type} = work_type_fixture(%{tenant_id: tenant.id})
-    {:ok, department} = department_fixture(%{tenant_id: tenant.id})
+    tenant_id =
+      attrs[:tenant_id] || Repo.insert!(%RosterApp.Tenants.Tenant{name: "Test-Tenant"}).id
+
+    user = attrs[:user] || user_fixture(%{tenant_id: tenant_id})
+    {:ok, work_type} = work_type_fixture(%{tenant_id: tenant_id})
+    {:ok, department} = department_fixture(%{tenant_id: tenant_id})
 
     {:ok, shift} =
       attrs

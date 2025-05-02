@@ -26,8 +26,8 @@ defmodule RosterApp.Accounts do
     Repo.get_by(User, email: email)
   end
 
-  def list_users() do
-    Repo.all(User)
+  def list_users(tenant_id) do
+    Repo.all(from u in User, where: u.tenant_id == ^tenant_id)
   end
 
   @doc """

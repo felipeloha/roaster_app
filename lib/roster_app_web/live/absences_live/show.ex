@@ -2,10 +2,12 @@ defmodule RosterAppWeb.AbsencesLive.Show do
   use RosterAppWeb, :live_view
 
   alias RosterApp.Orgs
+  alias RosterApp.Accounts
 
   @impl true
-  def mount(_params, _session, socket) do
-    {:ok, socket}
+  def mount(_params, %{"user_token" => user_token} = _session, socket) do
+    user = Accounts.get_user_by_session_token(user_token)
+    {:ok, assign(socket, current_user: user)}
   end
 
   @impl true

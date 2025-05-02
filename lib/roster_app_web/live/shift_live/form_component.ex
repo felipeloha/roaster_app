@@ -49,10 +49,18 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
 
   @impl true
   def update(%{shift: shift} = assigns, socket) do
-    work_types = Orgs.list_work_types()
-    departments = Orgs.list_departments()
-    # You’ll filter this later
-    users = Accounts.list_users()
+    {work_types, departments, users} =
+      case Map.get(assigns, :tenant_id, nil) do
+        nil ->
+          {[], [], []}
+
+        tenant_id ->
+          {
+            Orgs.list_work_types(tenant_id),
+            Orgs.list_departments(tenant_id),
+            Accounts.list_users(tenant_id)
+          }
+      end
 
     changeset = Shifts.change_shift(shift)
 
@@ -67,17 +75,21 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
 
   @impl true
   def handle_event("validate", %{"shift" => shift_params}, socket) do
-    changeset = Shifts.change_shift(socket.assigns.shift, with_tenant_id(socket, shift_params))
+    changeset =
+      Shifts.change_shift(
+        socket.assigns.shift,
+        Map.put(shift_params, "tenant_id", socket.assigns.tenant_id)
+      )
+
     {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
   end
 
   def handle_event("save", %{"shift" => shift_params}, socket) do
-    save_shift(socket, socket.assigns.action, with_tenant_id(socket, shift_params))
-  end
-
-  defp with_tenant_id(socket, shift_params) do
-    user = socket.assigns.current_user
-    Map.put(shift_params, "tenant_id", user.tenant_id)
+    save_shift(
+      socket,
+      socket.assigns.action,
+      Map.put(shift_params, "tenant_id", socket.assigns.tenant_id)
+    )
   end
 
   defp save_shift(socket, :edit, shift_params) do

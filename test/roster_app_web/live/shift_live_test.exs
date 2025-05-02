@@ -20,7 +20,7 @@ defmodule RosterAppWeb.ShiftLiveTest do
   describe "Index" do
     setup %{conn: conn} do
       user = user_fixture(%{role: "manager", email: "shift_man@mail.com"})
-      shift = shift_fixture()
+      shift = shift_fixture(%{user: user, tenant_id: user.tenant_id})
       %{conn: log_in_user(conn, user), user: user, shift: shift}
     end
 
@@ -31,7 +31,10 @@ defmodule RosterAppWeb.ShiftLiveTest do
       assert html =~ shift.description
     end
 
-    test "saves new shift", %{conn: conn} do
+    test "saves new shift", %{conn: conn, user: user} do
+      {:ok, work_type} = work_type_fixture(%{tenant_id: user.tenant_id})
+      {:ok, department} = department_fixture(%{tenant_id: user.tenant_id})
+
       {:ok, index_live, _html} = live(conn, ~p"/shifts")
 
       assert index_live |> element("a", "New Shift") |> render_click() =~
@@ -44,10 +47,17 @@ defmodule RosterAppWeb.ShiftLiveTest do
              |> render_change() =~ "can&#39;t be blank"
 
       assert index_live
-             |> form("#shift-form", shift: @create_attrs)
+             |> form("#shift-form",
+               shift:
+                 Enum.into(
+                   %{work_type_id: work_type.id, department_id: department.id},
+                   @create_attrs
+                 )
+             )
              |> render_submit()
 
       assert_patch(index_live, ~p"/shifts")
+      # assert render(index_live) =~ "can't be blank"
 
       html = render(index_live)
       assert html =~ "Shift created successfully"

@@ -14,7 +14,7 @@ defmodule RosterApp.ShiftsTest do
 
     test "list_shifts/0 returns all shifts" do
       shift = shift_fixture()
-      assert Shifts.list_shifts() == [shift]
+      assert Shifts.list_shifts(shift.tenant_id) == [shift]
     end
 
     test "get_shift!/1 returns the shift with given id" do
@@ -23,6 +23,25 @@ defmodule RosterApp.ShiftsTest do
     end
 
     test "create_shift/1 with valid data creates a shift" do
+      {:ok, work_type} = work_type_fixture(%{tenant_id: 1})
+      {:ok, department} = department_fixture(%{tenant_id: 1})
+
+      valid_attrs = %{
+        description: "some description",
+        start_time: ~U[2025-04-26 06:12:00Z],
+        end_time: ~U[2025-04-26 06:13:00Z],
+        work_type_id: work_type.id,
+        department_id: department.id,
+        tenant_id: 1
+      }
+
+      assert {:ok, %Shift{} = shift} = Shifts.create_shift(valid_attrs)
+      assert shift.description == "some description"
+      assert shift.start_time == ~U[2025-04-26 06:12:00Z]
+      assert shift.end_time == ~U[2025-04-26 06:13:00Z]
+    end
+
+    test "invalid create_shift/1 from different tenant_ids" do
       {:ok, work_type} = work_type_fixture(%{tenant_id: 1})
       {:ok, department} = department_fixture(%{tenant_id: 1})
 
@@ -119,7 +138,8 @@ defmodule RosterApp.ShiftsTest do
         end_time: ~U[2025-05-01 09:00:00Z],
         description: "Backwards shift",
         department_id: dept.id,
-        work_type_id: type.id
+        work_type_id: type.id,
+        tenant_id: dept.tenant_id
       }
 
       assert {:error, changeset} = Shifts.create_shift(invalid_attrs)

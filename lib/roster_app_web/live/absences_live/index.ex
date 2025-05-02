@@ -3,10 +3,16 @@ defmodule RosterAppWeb.AbsencesLive.Index do
 
   alias RosterApp.Orgs
   alias RosterApp.Orgs.Absences
+  alias RosterApp.Accounts
 
   @impl true
-  def mount(_params, _session, socket) do
-    {:ok, stream(socket, :absences_collection, Orgs.list_absences())}
+  def mount(_params, %{"user_token" => user_token} = _session, socket) do
+    user = Accounts.get_user_by_session_token(user_token)
+
+    {:ok,
+     socket
+     |> assign(:current_user, user)
+     |> stream(:absences_collection, Orgs.list_absences(user.id))}
   end
 
   @impl true

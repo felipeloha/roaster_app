@@ -21,12 +21,12 @@ defmodule RosterApp.Orgs do
     Enum.map(day_map(), fn {key, value} -> {value, key} end)
   end
 
-  def list_work_types() do
-    Repo.all(WorkType)
+  def list_work_types(tenant_id) do
+    Repo.all(from wt in WorkType, where: wt.tenant_id == ^tenant_id)
   end
 
-  def list_departments() do
-    Repo.all(Department)
+  def list_departments(tenant_id) do
+    Repo.all(from d in Department, where: d.tenant_id == ^tenant_id)
   end
 
   def create_department(attrs \\ %{}) do
@@ -79,8 +79,8 @@ defmodule RosterApp.Orgs do
       [%Absences{}, ...]
 
   """
-  def list_absences do
-    Repo.all(Absences)
+  def list_absences(user_id) do
+    Repo.all(from a in Absences, where: a.user_id == ^user_id)
   end
 
   @doc """

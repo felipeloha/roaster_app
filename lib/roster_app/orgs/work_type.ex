@@ -4,6 +4,7 @@ defmodule RosterApp.Orgs.WorkType do
 
   schema "work_types" do
     field :name, :string
+
     belongs_to :tenant, RosterApp.Tenants.Tenant
 
     timestamps(type: :utc_datetime)

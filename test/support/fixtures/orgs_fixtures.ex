@@ -11,6 +11,7 @@ defmodule RosterApp.OrgsFixtures do
     {:ok, absences} =
       attrs
       |> Enum.into(%{
+        user_id: 1,
         unavailable_days: [1, 2]
       })
       |> RosterApp.Orgs.create_absences()
