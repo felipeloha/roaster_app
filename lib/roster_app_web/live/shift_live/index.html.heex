@@ -28,7 +28,7 @@
     </div>
     <.link patch={~p"/shifts/#{shift}/edit"}>Edit</.link>
   </:action>
-  <:action :let={{id, shift}}>
+  <:action :let={{id, shift}} :if={@current_user.role == "manager"}>
     <.link
       phx-click={JS.push("delete", value: %{id: shift.id}) |> hide("##{id}")}
       data-confirm="Are you sure?"

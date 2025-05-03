@@ -25,6 +25,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
       |> assign(:assigned_user_options, assigned_user_options)
       |> assign(:default_start_time, default_start_time)
       |> assign(:default_end_time, default_end_time)
+      |> assign(:is_worker, assigns.current_user.role == "worker")
 
     ~H"""
     <div>
@@ -40,36 +41,41 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:description]} type="text" label="Description" />
+        <.input field={@form[:description]} type="text" label="Description" disabled={@is_worker} />
         <.input
           type="select"
           field={@form[:work_type_id]}
           options={Enum.map(@work_types, &{&1.name, &1.id})}
           label="Work type"
+          disabled={@is_worker}
         />
         <.input
           type="select"
           field={@form[:department_id]}
           options={Enum.map(@departments, &{&1.name, &1.id})}
           label="Department"
+          disabled={@is_worker}
         />
         <.input
           field={@form[:start_time]}
           type="datetime-local"
           value={@default_start_time}
           label="Start time"
+          disabled={@is_worker}
         />
         <.input
           field={@form[:end_time]}
           type="datetime-local"
           value={@default_end_time}
           label="End time"
+          disabled={@is_worker}
         />
         <.input
           type="select"
           field={@form[:assigned_user_id]}
           options={@assigned_user_options}
           label="Assignee"
+          disabled={@is_worker && @form[:assigned_user_id].value not in [nil, ""]}
         />
         <:actions>
           <.button phx-disable-with="Saving...">Save Shift</.button>
@@ -81,6 +87,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
 
   @impl true
   def update(%{shift: shift} = assigns, socket) do
+    current_user = assigns.current_user
     changeset = Shifts.change_shift(shift)
 
     {work_types, departments, users} =
@@ -92,7 +99,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
           {
             Orgs.list_work_types(tenant_id),
             Orgs.list_departments(tenant_id),
-            eligible_workers(shift)
+            eligible_workers(shift, current_user)
           }
       end
 
@@ -118,7 +125,8 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
           department_id: department_id,
           start_time: start_time,
           end_time: end_time
-        } = shift
+        } = shift,
+        current_user
       ) do
     if present?(department_id) && present?(work_type_id) &&
          present?(start_time) && present?(end_time) &&
@@ -132,6 +140,10 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
       }
       |> Shifts.eligible_workers_for_shift()
       |> maybe_add_assigned_user(shift)
+      # TODO this is a bit horrible but the time is up
+      |> Enum.filter(fn user ->
+        current_user.role == "manager" || user.id == current_user.id
+      end)
       |> Enum.uniq()
     else
       []
@@ -162,7 +174,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
           user = Repo.get!(RosterApp.Accounts.User, user_id)
           Map.put(shift, :assigned_user, user)
       end
-      |> eligible_workers()
+      |> eligible_workers(socket.assigns.current_user)
 
     {
       :noreply,

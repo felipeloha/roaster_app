@@ -15,9 +15,11 @@ defmodule RosterApp.ShiftsTest do
     test "list_shifts/0 returns all shifts" do
       shift = shift_fixture()
 
-      [listed] = Shifts.list_shifts(shift.tenant_id)
+      [listed] = Shifts.list_shifts(%{role: "manager", tenant_id: shift.tenant_id, user_id: 1})
       assert listed |> Map.drop([:assigned_user]) == shift |> Map.drop([:assigned_user])
     end
+
+    # TODO test list users with roles
 
     test "get_shift!/1 returns the shift with given id" do
       shift = shift_fixture()

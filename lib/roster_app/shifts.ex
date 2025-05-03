@@ -19,7 +19,17 @@ defmodule RosterApp.Shifts do
       [%Shift{}, ...]
 
   """
-  def list_shifts(tenant_id) do
+  def list_shifts(%{role: "worker", tenant_id: tenant_id, id: user_id}) do
+    Repo.all(
+      from s in Shift,
+        where: s.tenant_id == ^tenant_id,
+        where: is_nil(s.assigned_user_id) or s.assigned_user_id == ^user_id,
+        order_by: [desc: fragment("assigned_user_id IS NULL"), asc: s.start_time],
+        preload: [:assigned_user]
+    )
+  end
+
+  def list_shifts(%{role: _, tenant_id: tenant_id}) do
     Repo.all(
       from s in Shift,
         where: s.tenant_id == ^tenant_id,
