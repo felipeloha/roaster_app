@@ -13,10 +13,10 @@
   row_click={fn {_id, shift} -> JS.navigate(~p"/shifts/#{shift}") end}
 >
   <:col :let={{_id, shift}} label="Start time">
-    <%= Calendar.strftime(shift.start_time, "%Y-%m-%d %H:%M") %>
+    <%= Calendar.strftime(shift.start_time, "%Y-%m-%d %H:%M %Z") %>
   </:col>
   <:col :let={{_id, shift}} label="End time">
-    <%= Calendar.strftime(shift.end_time, "%Y-%m-%d %H:%M") %>
+    <%= Calendar.strftime(shift.end_time, "%Y-%m-%d %H:%M %Z") %>
   </:col>
   <:col :let={{_id, shift}} label="Description">{shift.description}</:col>
   <:col :let={{_id, shift}} label="Assigned user">
