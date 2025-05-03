@@ -3,7 +3,6 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
 
   alias RosterApp.Shifts
   alias RosterApp.Orgs
-  alias RosterApp.Accounts
 
   @impl true
   def render(assigns) do
@@ -21,24 +20,27 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
+        <.input field={@form[:description]} type="text" label="Description" />
         <.input
           type="select"
           field={@form[:work_type_id]}
           options={Enum.map(@work_types, &{&1.name, &1.id})}
+          label="Work type"
         />
         <.input
           type="select"
           field={@form[:department_id]}
           options={Enum.map(@departments, &{&1.name, &1.id})}
+          label="Department"
         />
+        <.input field={@form[:start_time]} type="datetime-local" label="Start time" />
+        <.input field={@form[:end_time]} type="datetime-local" label="End time" />
         <.input
           type="select"
           field={@form[:assigned_user_id]}
           options={Enum.map(@users, &{&1.email, &1.id})}
+          label="Assigned workforce"
         />
-        <.input field={@form[:start_time]} type="datetime-local" label="Start time" />
-        <.input field={@form[:end_time]} type="datetime-local" label="End time" />
-        <.input field={@form[:description]} type="text" label="Description" />
         <:actions>
           <.button phx-disable-with="Saving...">Save Shift</.button>
         </:actions>
@@ -58,7 +60,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
           {
             Orgs.list_work_types(tenant_id),
             Orgs.list_departments(tenant_id),
-            Accounts.list_users(tenant_id)
+            eligible_workers(shift)
           }
       end
 
@@ -73,15 +75,47 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
      |> assign(:form, to_form(changeset))}
   end
 
+  def present?(value), do: not is_nil(value) and value != ""
+
+  def eligible_workers(%{
+        tenant_id: tenant_id,
+        work_type_id: work_type_id,
+        department_id: department_id,
+        start_time: start_time,
+        end_time: end_time
+      }) do
+    if present?(department_id) && present?(work_type_id) &&
+         present?(start_time) && present?(end_time) && present?(tenant_id) do
+      Shifts.eligible_workers_for_shift(%{
+        tenant_id: tenant_id,
+        work_type_id: work_type_id,
+        department_id: department_id,
+        start_time: start_time,
+        end_time: end_time
+      })
+    else
+      []
+    end
+  end
+
+  def eligible_workers(_), do: []
+
   @impl true
   def handle_event("validate", %{"shift" => shift_params}, socket) do
-    changeset =
-      Shifts.change_shift(
-        socket.assigns.shift,
-        Map.put(shift_params, "tenant_id", socket.assigns.tenant_id)
-      )
+    shift_params = Map.put(shift_params, "tenant_id", socket.assigns.tenant_id)
+    changeset = Shifts.change_shift(socket.assigns.shift, shift_params)
 
-    {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
+    users =
+      changeset.changes
+      |> Map.put(:tenant_id, socket.assigns.tenant_id)
+      |> eligible_workers()
+
+    {
+      :noreply,
+      socket
+      |> assign(form: to_form(changeset, action: :validate))
+      |> assign(:users, users)
+    }
   end
 
   def handle_event("save", %{"shift" => shift_params}, socket) do

@@ -162,7 +162,7 @@ defmodule RosterApp.ShiftsTest do
     end
   end
 
-  # TODO fix or remove
+  # TODO add overlapping check
   #  describe "eligible_workers_for_shift/1" do
   #    setup do
   #      {:ok, dept} = Orgs.create_department(%{name: "Ops"})
@@ -247,40 +247,58 @@ defmodule RosterApp.ShiftsTest do
       {:ok, type} = Orgs.create_work_type(%{name: "Delivery", tenant_id: tenant.id})
 
       # Register users
-      {:ok, user1} =
-        Accounts.register_user(%{
-          email: "user1@example.com",
-          password: "password123111111",
-          role: "worker",
-          tenant_id: tenant.id
-        })
-
-      {:ok, user2} =
-        Accounts.register_user(%{
-          email: "user2@example.com",
-          password: "password123111111",
-          role: "worker",
-          tenant_id: tenant.id
-        })
-
-      # Assign users to department and work type
-      Enum.each([user1, user2], fn user ->
-        Orgs.assign_user_to_department(user.id, dept.id)
-        Orgs.assign_user_to_work_type(user.id, type.id)
-      end)
-
-      # Add absences for user2
-      {:ok, _absence} =
-        Orgs.create_absences(%{
-          user_id: user2.id,
-          # Monday
-          unavailable_days: [1]
-        })
+      user1 = user_with_absence("user1", [], dept, type)
+      user2 = user_with_absence("user2", [1], dept, type)
 
       %{dept: dept, type: type, user1: user1, user2: user2}
     end
 
-    test "eligible_workers_for_shift excludes workers with absences", %{
+    test "eligible_workers_for_shift selects only eligible in work types and departments", %{
+      dept: dept
+    } do
+      # shift goes to new department with new work type and lasts from monday to wednesday
+      # user1 is selected by department and work type and absence is on saturday and sunday
+      # user2 is excluded by absence on Monday
+      # user3 is excluded by absence on Wednesday
+      # the users from setup are excluded by department and worktype
+      {:ok, selected_dept} =
+        Orgs.create_department(%{name: "selected_dept", tenant_id: dept.tenant_id})
+
+      {:ok, selected_work_type} =
+        Orgs.create_work_type(%{name: "selected_work_type", tenant_id: dept.tenant_id})
+
+      {:ok, selected_user} =
+        Accounts.register_user(%{
+          email: "selected@mail.com",
+          password: "password123456789",
+          role: "worker",
+          tenant_id: dept.tenant_id
+        })
+
+      Orgs.assign_user_to_department(selected_user.id, selected_dept.id)
+      Orgs.assign_user_to_work_type(selected_user.id, selected_work_type.id)
+
+      # excluded user by absence on monday
+      _user_mon = user_with_absence("exc_monday", [1], selected_dept, selected_work_type)
+      _user_wed = user_with_absence("exc_wed", [3], selected_dept, selected_work_type)
+
+      shift_time = %{
+        # Monday - Wednesday
+        start_time: ~U[2025-04-28 09:00:00Z],
+        end_time: ~U[2025-04-30 17:00:00Z],
+        department_id: selected_dept.id,
+        work_type_id: selected_work_type.id,
+        tenant_id: dept.tenant_id
+      }
+
+      eligible = Shifts.eligible_workers_for_shift(shift_time)
+      eligible_ids = Enum.map(eligible, & &1.id)
+
+      # only selected user should be eligible
+      assert [selected_user.id] == eligible_ids
+    end
+
+    test "eligible_workers_for_shift excludes workers from other departments", %{
       dept: dept,
       type: type,
       user1: user1,
@@ -291,7 +309,8 @@ defmodule RosterApp.ShiftsTest do
         start_time: ~U[2025-04-28 09:00:00Z],
         end_time: ~U[2025-04-28 17:00:00Z],
         department_id: dept.id,
-        work_type_id: type.id
+        work_type_id: type.id,
+        tenant_id: dept.tenant_id
       }
 
       eligible = Shifts.eligible_workers_for_shift(shift_time)
@@ -303,5 +322,26 @@ defmodule RosterApp.ShiftsTest do
       # user2 should NOT be eligible (absent on Monday)
       refute user2.id in eligible_ids
     end
+  end
+
+  def user_with_absence(id, unavailable_days, dept, work_type) do
+    {:ok, user} =
+      Accounts.register_user(%{
+        email: "#{id}@mail.com",
+        password: "password123456789",
+        role: "worker",
+        tenant_id: dept.tenant_id
+      })
+
+    {:ok, _absence} =
+      Orgs.create_absences(%{
+        user_id: user.id,
+        unavailable_days: unavailable_days
+      })
+
+    Orgs.assign_user_to_department(user.id, dept.id)
+    Orgs.assign_user_to_work_type(user.id, work_type.id)
+
+    user
   end
 end

@@ -103,28 +103,34 @@ defmodule RosterApp.Shifts do
     Shift.changeset(shift, attrs)
   end
 
+  def days_of_week_between(start_date, end_date) do
+    Date.range(start_date, end_date)
+    |> Enum.map(&Date.day_of_week/1)
+  end
+
   def eligible_workers_for_shift(%{
+        tenant_id: tenant_id,
         start_time: start_time,
-        end_time: _end_time,
+        end_time: end_time,
         department_id: dept_id,
         work_type_id: type_id
       }) do
+    # TODO implement timezone awareness
+    # TODO implement excluding overlapping shifts
+    shift_days = days_of_week_between(start_time, end_time)
+
     query =
       from(u in User,
         as: :u,
         join: d in assoc(u, :departments),
         join: w in assoc(u, :work_types),
-        where: d.id == ^dept_id and w.id == ^type_id,
+        where: d.id == ^dept_id and w.id == ^type_id and u.tenant_id == ^tenant_id,
         where:
           not exists(
             from a in RosterApp.Orgs.Absences,
               where:
                 a.user_id == parent_as(:u).id and
-                  fragment(
-                    "EXTRACT(DOW FROM CAST(? AS timestamp))::int = ANY(?)",
-                    ^start_time,
-                    a.unavailable_days
-                  ),
+                  fragment("? && ?", a.unavailable_days, ^shift_days),
               select: 1
           )
       )
