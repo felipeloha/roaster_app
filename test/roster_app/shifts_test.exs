@@ -246,38 +246,10 @@ defmodule RosterApp.ShiftsTest do
       {:ok, dept} = Orgs.create_department(%{name: "Logistics", tenant_id: tenant.id})
       {:ok, type} = Orgs.create_work_type(%{name: "Delivery", tenant_id: tenant.id})
 
-      # Register users
-      {:ok, user1} =
-        Accounts.register_user(%{
-          email: "user1@example.com",
-          password: "password123111111",
-          role: "worker",
-          tenant_id: tenant.id
-        })
+      user_1 = create_user_with_department_and_work_type("user_1", tenant.id, dept.id, type.id)
+      user_2 = create_user_with_department_and_work_type("user_2", tenant.id, dept.id, type.id)
 
-      {:ok, user2} =
-        Accounts.register_user(%{
-          email: "user2@example.com",
-          password: "password123111111",
-          role: "worker",
-          tenant_id: tenant.id
-        })
-
-      # Assign users to department and work type
-      Enum.each([user1, user2], fn user ->
-        Orgs.assign_user_to_department(user.id, dept.id)
-        Orgs.assign_user_to_work_type(user.id, type.id)
-      end)
-
-      # Add absences for user2
-      {:ok, _absence} =
-        Orgs.create_absences(%{
-          user_id: user2.id,
-          # Monday
-          unavailable_days: [1]
-        })
-
-      %{dept: dept, type: type, user1: user1, user2: user2}
+      %{dept: dept, type: type, user1: user_1, user2: user_2}
     end
 
     test "eligible_workers_for_shift excludes workers with absences", %{
@@ -286,12 +258,21 @@ defmodule RosterApp.ShiftsTest do
       user1: user1,
       user2: user2
     } do
+      # Add absences for user2
+      {:ok, _absence} =
+        Orgs.create_absences(%{
+          user_id: user2.id,
+          # Monday
+          unavailable_days: [1]
+        })
+
       shift_time = %{
         # Monday
         start_time: ~U[2025-04-28 09:00:00Z],
         end_time: ~U[2025-04-28 17:00:00Z],
         department_id: dept.id,
-        work_type_id: type.id
+        work_type_id: type.id,
+        tenant_id: user1.tenant_id
       }
 
       eligible = Shifts.eligible_workers_for_shift(shift_time)
@@ -303,5 +284,156 @@ defmodule RosterApp.ShiftsTest do
       # user2 should NOT be eligible (absent on Monday)
       refute user2.id in eligible_ids
     end
+
+    test "eligible_workers_for_shift excludes workers with absences (Shift Sunday to Monday)", %{
+      dept: dept,
+      type: type,
+      user1: user1,
+      user2: user2
+    } do
+      # user 3 can not be consider because has a shift on Saturday
+      user_3 =
+        create_user_with_department_and_work_type("user_3", user2.tenant_id, dept.id, type.id)
+
+      # user 4 can not be consider because has absence on Sundays
+      user_4 =
+        create_user_with_department_and_work_type("user_4", user2.tenant_id, dept.id, type.id)
+
+      {:ok, _absence} =
+        Orgs.create_absences(%{
+          user_id: user_4.id,
+          # Sunday and Monday
+          unavailable_days: [0]
+        })
+
+      {:ok, _shift_user_3_saturday} =
+        Shifts.create_shift(%{
+          start_time: ~U[2025-04-26 07:00:00Z],
+          end_time: ~U[2025-04-26 10:00:00Z],
+          description: "Shift whole day saturday",
+          department_id: dept.id,
+          work_type_id: type.id,
+          assigned_user_id: user_3.id,
+          tenant_id: user_3.tenant_id
+        })
+
+      # Add absences for user2
+      {:ok, _absence} =
+        Orgs.create_absences(%{
+          user_id: user2.id,
+          # Sunday and Monday
+          unavailable_days: [0, 1]
+        })
+
+      shift_time = %{
+        # Shift Friday to Monday
+        start_time: ~U[2025-04-25 23:00:00Z],
+        end_time: ~U[2025-04-28 03:00:00Z],
+        department_id: dept.id,
+        work_type_id: type.id,
+        tenant_id: user1.tenant_id
+      }
+
+      eligible_ids = shift_time |> Shifts.eligible_workers_for_shift() |> Enum.map(& &1.id)
+
+      assert user_4.id not in eligible_ids
+      assert length(eligible_ids) == 1
+      assert eligible_ids == [user1.id]
+
+      assert user2.id not in eligible_ids
+      assert user_3.id not in eligible_ids
+      assert user_4.id not in eligible_ids
+    end
+
+    test "eligible_workers_from_shift excludes workers with already assigned shifts", %{
+      dept: dept,
+      type: type,
+      user1: user1,
+      user2: user2
+    } do
+      # Shift 1 assigned to user 1 (Monday to Wednesday shift)
+      {:ok, _shift_1} =
+        Shifts.create_shift(%{
+          start_time: ~U[2025-04-28 09:00:00Z],
+          end_time: ~U[2025-04-30 09:00:00Z],
+          description: "Shift 1 Monday to Wednesday",
+          department_id: dept.id,
+          work_type_id: type.id,
+          assigned_user_id: user1.id,
+          tenant_id: user1.tenant_id
+        })
+
+      {:ok, _shift_2} =
+        Shifts.create_shift(%{
+          start_time: ~U[2025-04-29 09:00:00Z],
+          end_time: ~U[2025-04-30 09:00:00Z],
+          description: "Shift 2 Tuesday to Wednesday",
+          department_id: dept.id,
+          work_type_id: type.id,
+          assigned_user_id: user2.id,
+          tenant_id: user1.tenant_id
+        })
+
+      # user 3 with no shifts should be eligible
+      user_3 = create_user_with_department_and_work_type("user_3", user2.tenant_id, dept.id, type.id)
+      user_4 = create_user_with_department_and_work_type("user_4", user2.tenant_id, dept.id, type.id)
+      user_5 = create_user_with_department_and_work_type("user_5", user2.tenant_id, dept.id, type.id)
+
+      # user 4 has a shift in the middle of the new shift
+      {:ok, _shift_3} =
+        Shifts.create_shift(%{
+          start_time: ~U[2025-04-28 05:00:00Z],
+          end_time: ~U[2025-04-28 13:00:00Z],
+          description: "Shift 3 Monday to Monday",
+          department_id: dept.id,
+          work_type_id: type.id,
+          assigned_user_id: user_4.id,
+          tenant_id: user_4.tenant_id
+        })
+
+      # user 5 has a shift exact after the end of the shift 2 end date (can be consider)
+      {:ok, _shift_5} =
+        Shifts.create_shift(%{
+          start_time: ~U[2025-04-28 14:01:00Z],
+          end_time: ~U[2025-04-29 07:00:00Z],
+          description: "Shift 3 Monday to Tuesday",
+          department_id: dept.id,
+          work_type_id: type.id,
+          assigned_user_id: user_5.id,
+          tenant_id: user_5.tenant_id
+        })
+
+      # Shift 2 assigned to user 1 (Sunday to Monday)
+      shift_time = %{
+        # Monday
+        start_time: ~U[2025-04-27 14:00:00Z],
+        end_time: ~U[2025-04-28 14:00:00Z],
+        department_id: dept.id,
+        work_type_id: type.id,
+        tenant_id: user1.tenant_id
+      }
+
+      eligible_ids = shift_time |> Shifts.eligible_workers_for_shift() |> Enum.map(& &1.id)
+
+      assert length(eligible_ids) == 3
+
+      # User 1 can not be assigned because its already busy with shift 1
+      assert user1.id not in eligible_ids
+      assert Enum.sort(eligible_ids) == Enum.sort([user2.id, user_3.id, user_5.id])
+    end
+  end
+
+  defp create_user_with_department_and_work_type(prefix, tenant_id, department_id, work_type_id) do
+    {:ok, user} =
+      Accounts.register_user(%{
+        email: "#{prefix}@example.com",
+        password: "#{prefix}_password",
+        role: "worker",
+        tenant_id: tenant_id
+      })
+
+    Orgs.assign_user_to_department(user.id, department_id)
+    Orgs.assign_user_to_work_type(user.id, work_type_id)
+    user
   end
 end

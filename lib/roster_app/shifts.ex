@@ -9,6 +9,7 @@ defmodule RosterApp.Shifts do
   alias RosterApp.Shifts.Shift
   alias RosterApp.Accounts.User
 
+  @total_days_in_week 7
   @doc """
   Returns the list of shifts.
 
@@ -104,8 +105,9 @@ defmodule RosterApp.Shifts do
   end
 
   def days_of_week_between(start_date, end_date) do
-    Date.range(start_date, end_date)
-    |> Enum.map(&Date.day_of_week/1)
+    start_date
+    |> Date.range(end_date)
+    |> Enum.map(&(&1 |> Date.day_of_week() |> rem(@total_days_in_week)))
   end
 
   def eligible_workers_for_shift(%{
@@ -119,23 +121,33 @@ defmodule RosterApp.Shifts do
     # TODO implement excluding overlapping shifts
     shift_days = days_of_week_between(start_time, end_time)
 
-    query =
-      from(u in User,
-        as: :u,
-        join: d in assoc(u, :departments),
-        join: w in assoc(u, :work_types),
-        where: d.id == ^dept_id and w.id == ^type_id and u.tenant_id == ^tenant_id,
-        where:
-          not exists(
-            from a in RosterApp.Orgs.Absences,
-              where:
-                a.user_id == parent_as(:u).id and
-                  fragment("? && ?", a.unavailable_days, ^shift_days),
-              select: 1
-          )
+    from(user in User, as: :user)
+    |> join(:inner, [user], d in assoc(user, :departments), as: :department)
+    |> join(:inner, [user], w in assoc(user, :work_types), as: :work_type)
+    |> where(
+      [user, department: department, work_type: work_type],
+      user.tenant_id == ^tenant_id and department.id == ^dept_id and work_type.id == ^type_id
+    )
+    |> where(
+      [user],
+      not exists(
+        from a in RosterApp.Orgs.Absences,
+          where:
+            a.user_id == parent_as(:user).id and
+              fragment("? && ?", a.unavailable_days, ^shift_days),
+          select: 1
       )
-
-    query
+    )
+    |> where(
+      [user],
+      not exists(
+        from shift in Shift,
+          where:
+            shift.assigned_user_id == parent_as(:user).id and shift.end_time >= ^start_time and
+              shift.start_time <= ^end_time,
+          select: 1
+      )
+    )
     |> Repo.all()
   end
 end
