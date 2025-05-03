@@ -23,7 +23,7 @@ defmodule RosterApp.Shifts do
     Repo.all(
       from s in Shift,
         where: s.tenant_id == ^tenant_id,
-        order_by: [asc: fragment("assigned_user_id IS NULL"), asc: s.start_time],
+        order_by: [desc: fragment("assigned_user_id IS NULL"), asc: s.start_time],
         preload: [:assigned_user]
     )
   end

@@ -14,7 +14,17 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
         Enum.map(assigns.users, &{&1.email, &1.id})
       end
 
-    assigns = assign(assigns, :assigned_user_options, assigned_user_options)
+    default_start_time =
+      assigns.form[:start_time].value || NaiveDateTime.new!(Date.utc_today(), ~T[08:00:00])
+
+    default_end_time =
+      assigns.form[:end_time].value || NaiveDateTime.new!(Date.utc_today(), ~T[18:00:00])
+
+    assigns =
+      assigns
+      |> assign(:assigned_user_options, assigned_user_options)
+      |> assign(:default_start_time, default_start_time)
+      |> assign(:default_end_time, default_end_time)
 
     ~H"""
     <div>
@@ -43,16 +53,24 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
           options={Enum.map(@departments, &{&1.name, &1.id})}
           label="Department"
         />
-        <.input field={@form[:start_time]} type="datetime-local" label="Start time" />
-        <.input field={@form[:end_time]} type="datetime-local" label="End time" />
+        <.input
+          field={@form[:start_time]}
+          type="datetime-local"
+          value={@default_start_time}
+          label="Start time"
+        />
+        <.input
+          field={@form[:end_time]}
+          type="datetime-local"
+          value={@default_end_time}
+          label="End time"
+        />
         <.input
           type="select"
           field={@form[:assigned_user_id]}
           options={@assigned_user_options}
           label="Assignee"
         />
-        <div>Assgined{inspect(@form[:assigned_user_id].value)}</div>
-        <div>opts{inspect(@assigned_user_options)}</div>
         <:actions>
           <.button phx-disable-with="Saving...">Save Shift</.button>
         </:actions>
