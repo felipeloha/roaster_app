@@ -156,32 +156,32 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
 
   @impl true
   def handle_event("validate", %{"shift" => shift_params}, socket) do
-    shift_params = Map.put(shift_params, "tenant_id", socket.assigns.tenant_id)
-    changeset = Shifts.change_shift(socket.assigns.shift, shift_params)
+    tenant_id = socket.assigns.tenant_id
+
+    changeset =
+      shift_params
+      |> Map.put("tenant_id", tenant_id)
+      |> then(&Shifts.change_shift(socket.assigns.shift, &1))
 
     shift =
       changeset
       |> Ecto.Changeset.apply_changes()
-      |> Map.put(:tenant_id, socket.assigns.tenant_id)
+      |> Map.put(:tenant_id, tenant_id)
+      |> maybe_assign_user()
 
-    users =
-      shift
-      |> case do
-        %{assigned_user_id: nil} = shift ->
-          shift
+    users = eligible_workers(shift, socket.assigns.current_user)
 
-        %{assigned_user_id: user_id} = shift ->
-          user = Repo.get!(RosterApp.Accounts.User, user_id)
-          Map.put(shift, :assigned_user, user)
-      end
-      |> eligible_workers(socket.assigns.current_user)
+    {:noreply,
+     socket
+     |> assign(:form, to_form(changeset, action: :validate))
+     |> assign(:users, users)}
+  end
 
-    {
-      :noreply,
-      socket
-      |> assign(form: to_form(changeset, action: :validate))
-      |> assign(:users, users)
-    }
+  defp maybe_assign_user(%{assigned_user_id: nil} = shift), do: shift
+
+  defp maybe_assign_user(%{assigned_user_id: user_id} = shift) do
+    user = Repo.get!(RosterApp.Accounts.User, user_id)
+    Map.put(shift, :assigned_user, user)
   end
 
   def handle_event("save", %{"shift" => shift_params}, socket) do

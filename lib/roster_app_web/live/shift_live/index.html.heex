@@ -12,8 +12,12 @@
   rows={@streams.shifts}
   row_click={fn {_id, shift} -> JS.navigate(~p"/shifts/#{shift}") end}
 >
-  <:col :let={{_id, shift}} label="Start time">{shift.start_time}</:col>
-  <:col :let={{_id, shift}} label="End time">{shift.end_time}</:col>
+  <:col :let={{_id, shift}} label="Start time">
+    <%= Calendar.strftime(shift.start_time, "%Y-%m-%d %H:%M") %>
+  </:col>
+  <:col :let={{_id, shift}} label="End time">
+    <%= Calendar.strftime(shift.end_time, "%Y-%m-%d %H:%M") %>
+  </:col>
   <:col :let={{_id, shift}} label="Description">{shift.description}</:col>
   <:col :let={{_id, shift}} label="Assigned user">
     <%= if not is_nil(shift.assigned_user_id) and shift.assigned_user  do %>
