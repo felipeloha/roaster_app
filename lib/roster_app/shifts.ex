@@ -20,7 +20,12 @@ defmodule RosterApp.Shifts do
 
   """
   def list_shifts(tenant_id) do
-    Repo.all(from s in Shift, where: s.tenant_id == ^tenant_id)
+    Repo.all(
+      from s in Shift,
+        where: s.tenant_id == ^tenant_id,
+        order_by: [asc: fragment("assigned_user_id IS NULL"), asc: s.start_time],
+        preload: [:assigned_user]
+    )
   end
 
   @doc """
@@ -37,7 +42,7 @@ defmodule RosterApp.Shifts do
       ** (Ecto.NoResultsError)
 
   """
-  def get_shift!(id), do: Repo.get!(Shift, id)
+  def get_shift!(id), do: Repo.get!(Shift, id) |> Repo.preload(:assigned_user)
 
   @doc """
   Creates a shift.
@@ -201,8 +206,8 @@ defmodule RosterApp.Shifts do
       not exists(
         from shift in Shift,
           where:
-            shift.assigned_user_id == parent_as(:user).id and shift.end_time >= ^start_time and
-              shift.start_time <= ^end_time,
+            shift.assigned_user_id == parent_as(:user).id and
+              shift.end_time >= ^start_time and shift.start_time <= ^end_time,
           select: 1
       )
     )

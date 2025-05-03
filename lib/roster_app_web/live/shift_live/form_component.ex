@@ -3,9 +3,19 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
 
   alias RosterApp.Shifts
   alias RosterApp.Orgs
+  alias RosterApp.Repo
 
   @impl true
   def render(assigns) do
+    assigned_user_options =
+      if assigns.form[:assigned_user_id].value in [nil, ""] do
+        [{"— Select —", ""} | Enum.map(assigns.users, &{&1.email, &1.id})]
+      else
+        Enum.map(assigns.users, &{&1.email, &1.id})
+      end
+
+    assigns = assign(assigns, :assigned_user_options, assigned_user_options)
+
     ~H"""
     <div>
       <.header>
@@ -38,9 +48,11 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
         <.input
           type="select"
           field={@form[:assigned_user_id]}
-          options={Enum.map(@users, &{&1.email, &1.id})}
-          label="Assigned workforce"
+          options={@assigned_user_options}
+          label="Assignee"
         />
+        <div>Assgined{inspect(@form[:assigned_user_id].value)}</div>
+        <div>opts{inspect(@assigned_user_options)}</div>
         <:actions>
           <.button phx-disable-with="Saving...">Save Shift</.button>
         </:actions>
@@ -51,6 +63,8 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
 
   @impl true
   def update(%{shift: shift} = assigns, socket) do
+    changeset = Shifts.change_shift(shift)
+
     {work_types, departments, users} =
       case Map.get(assigns, :tenant_id, nil) do
         nil ->
@@ -64,8 +78,6 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
           }
       end
 
-    changeset = Shifts.change_shift(shift)
-
     {:ok,
      socket
      |> assign(assigns)
@@ -75,40 +87,63 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
      |> assign(:form, to_form(changeset))}
   end
 
-  def present?(value), do: not is_nil(value) and value != ""
+  defp present?(value), do: not is_nil(value) and value != ""
 
-  def eligible_workers(%{
-        tenant_id: tenant_id,
-        work_type_id: work_type_id,
-        department_id: department_id,
-        start_time: start_time,
-        end_time: end_time
-      }) do
+  defp maybe_add_assigned_user(list, %{assigned_user_id: nil}), do: list
+  defp maybe_add_assigned_user(list, %{assigned_user: user}), do: list ++ [user]
+  defp maybe_add_assigned_user(list, _), do: list
+
+  def eligible_workers(
+        %{
+          tenant_id: tenant_id,
+          work_type_id: work_type_id,
+          department_id: department_id,
+          start_time: start_time,
+          end_time: end_time
+        } = shift
+      ) do
     if present?(department_id) && present?(work_type_id) &&
          present?(start_time) && present?(end_time) &&
          present?(tenant_id) do
-      Shifts.eligible_workers_for_shift(%{
+      %{
         tenant_id: tenant_id,
         work_type_id: work_type_id,
         department_id: department_id,
         start_time: start_time,
         end_time: end_time
-      })
+      }
+      |> Shifts.eligible_workers_for_shift()
+      |> maybe_add_assigned_user(shift)
+      |> Enum.uniq()
     else
       []
     end
   end
 
-  def eligible_workers(_), do: []
+  def eligible_workers(_) do
+    []
+  end
 
   @impl true
   def handle_event("validate", %{"shift" => shift_params}, socket) do
     shift_params = Map.put(shift_params, "tenant_id", socket.assigns.tenant_id)
     changeset = Shifts.change_shift(socket.assigns.shift, shift_params)
 
-    users =
-      changeset.changes
+    shift =
+      changeset
+      |> Ecto.Changeset.apply_changes()
       |> Map.put(:tenant_id, socket.assigns.tenant_id)
+
+    users =
+      shift
+      |> case do
+        %{assigned_user_id: nil} = shift ->
+          shift
+
+        %{assigned_user_id: user_id} = shift ->
+          user = Repo.get!(RosterApp.Accounts.User, user_id)
+          Map.put(shift, :assigned_user, user)
+      end
       |> eligible_workers()
 
     {
@@ -130,6 +165,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
   defp save_shift(socket, :edit, shift_params) do
     case Shifts.update_shift(socket.assigns.shift, shift_params) do
       {:ok, shift} ->
+        shift = Repo.preload(shift, :assigned_user)
         notify_parent({:saved, shift})
 
         {:noreply,
@@ -145,6 +181,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
   defp save_shift(socket, :new, shift_params) do
     case Shifts.create_shift(shift_params) do
       {:ok, shift} ->
+        shift = Repo.preload(shift, :assigned_user)
         notify_parent({:saved, shift})
 
         {:noreply,

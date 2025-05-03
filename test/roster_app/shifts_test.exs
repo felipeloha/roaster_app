@@ -14,12 +14,16 @@ defmodule RosterApp.ShiftsTest do
 
     test "list_shifts/0 returns all shifts" do
       shift = shift_fixture()
-      assert Shifts.list_shifts(shift.tenant_id) == [shift]
+
+      [listed] = Shifts.list_shifts(shift.tenant_id)
+      assert listed |> Map.drop([:assigned_user]) == shift |> Map.drop([:assigned_user])
     end
 
     test "get_shift!/1 returns the shift with given id" do
       shift = shift_fixture()
-      assert Shifts.get_shift!(shift.id) == shift
+
+      assert Shifts.get_shift!(shift.id) |> Map.drop([:assigned_user]) ==
+               shift |> Map.drop([:assigned_user])
     end
 
     test "create_shift/1 with valid data creates a shift" do
@@ -82,7 +86,9 @@ defmodule RosterApp.ShiftsTest do
     test "update_shift/2 with invalid data returns error changeset" do
       shift = shift_fixture()
       assert {:error, %Ecto.Changeset{}} = Shifts.update_shift(shift, @invalid_attrs)
-      assert shift == Shifts.get_shift!(shift.id)
+
+      assert shift |> Map.drop([:assigned_user]) ==
+               Shifts.get_shift!(shift.id) |> Map.drop([:assigned_user])
     end
 
     test "delete_shift/1 deletes the shift" do
