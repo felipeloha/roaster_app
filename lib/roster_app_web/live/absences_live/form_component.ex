@@ -19,20 +19,39 @@ defmodule RosterAppWeb.AbsencesLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <span>Selected values: {inspect(@form.params |> Map.get("unavailable_days", []))}</span>
-        <.input
-          field={@form[:unavailable_days]}
-          type="select"
-          multiple={true}
-          label="Unavailable days"
-          options={Orgs.day_map_as_tuples()}
-        />
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700">Unavailable days</label>
+          <div class="mt-2 space-y-1">
+            <%= for {label, value} <- Orgs.day_map_as_tuples() do %>
+              <label class="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  name="absences[unavailable_days][]"
+                  value={to_string(value)}
+                  checked={checked_day?(@form, value)}
+                  class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                />
+                <span>{label}</span>
+              </label>
+            <% end %>
+          </div>
+        </div>
         <:actions>
           <.button phx-disable-with="Saving...">Save Absences</.button>
         </:actions>
       </.simple_form>
     </div>
     """
+  end
+
+  defp checked_day?(form, day) do
+    values =
+      form.params["unavailable_days"] ||
+        form.source.changes[:unavailable_days] ||
+        form.data.unavailable_days ||
+        []
+
+    to_string(day) in Enum.map(values, &to_string/1)
   end
 
   @impl true
@@ -115,11 +134,16 @@ defmodule RosterAppWeb.AbsencesLive.FormComponent do
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
 
   defp get_full_absences_params(socket, absences_params) do
+    unavailable_days =
+      absences_params
+      |> Map.get("unavailable_days", [])
+      |> Enum.map(fn
+        day when is_binary(day) -> String.to_integer(day)
+        day -> day
+      end)
+
     absences_params
-    |> Map.put(
-      "unavailable_days",
-      (previous_days(socket) ++ absences_params["unavailable_days"]) |> Enum.uniq()
-    )
+    |> Map.put("unavailable_days", unavailable_days)
     |> Map.put("user_id", socket.assigns.current_user.id)
   end
 end

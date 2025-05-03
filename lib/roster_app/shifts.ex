@@ -141,7 +141,7 @@ defmodule RosterApp.Shifts do
     |> Repo.all()
   end
 
-  defp is_user_available_for_shift?(user_id, tenant_id, dept_id, type_id, start_time, end_time) do
+  defp user_available_for_shift?(user_id, tenant_id, dept_id, type_id, start_time, end_time) do
     tenant_id
     |> get_eligible_workers_base_query(dept_id, type_id, start_time, end_time)
     |> where([user], user.id == ^user_id)
@@ -181,7 +181,7 @@ defmodule RosterApp.Shifts do
     }
 
     assigned_user_id
-    |> is_user_available_for_shift?(tenant_id, department_id, work_type_id, start_time, end_time)
+    |> user_available_for_shift?(tenant_id, department_id, work_type_id, start_time, end_time)
     |> if do
       changeset
     else
