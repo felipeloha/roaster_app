@@ -177,13 +177,6 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
      |> assign(:users, users)}
   end
 
-  defp maybe_assign_user(%{assigned_user_id: nil} = shift), do: shift
-
-  defp maybe_assign_user(%{assigned_user_id: user_id} = shift) do
-    user = Repo.get!(RosterApp.Accounts.User, user_id)
-    Map.put(shift, :assigned_user, user)
-  end
-
   def handle_event("save", %{"shift" => shift_params}, socket) do
     save_shift(
       socket,
@@ -195,6 +188,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
   defp save_shift(socket, :edit, shift_params) do
     case Shifts.update_shift(socket.assigns.shift, shift_params) do
       {:ok, shift} ->
+        maybe_notify_assignee(shift)
         shift = Repo.preload(shift, :assigned_user)
         notify_parent({:saved, shift})
 
@@ -211,6 +205,7 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
   defp save_shift(socket, :new, shift_params) do
     case Shifts.create_shift(shift_params) do
       {:ok, shift} ->
+        maybe_notify_assignee(shift)
         shift = Repo.preload(shift, :assigned_user)
         notify_parent({:saved, shift})
 
@@ -224,5 +219,22 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
     end
   end
 
+  def maybe_notify_assignee(shift, notification_type \\ :shift_assigned) do
+    if not is_nil(shift.assigned_user_id) do
+      Phoenix.PubSub.broadcast(
+        RosterApp.PubSub,
+        "user:#{shift.assigned_user_id}",
+        {notification_type, shift}
+      )
+    end
+  end
+
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
+
+  defp maybe_assign_user(%{assigned_user_id: nil} = shift), do: shift
+
+  defp maybe_assign_user(%{assigned_user_id: user_id} = shift) do
+    user = Repo.get!(RosterApp.Accounts.User, user_id)
+    Map.put(shift, :assigned_user, user)
+  end
 end

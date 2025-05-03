@@ -9,6 +9,10 @@ defmodule RosterAppWeb.ShiftLive.Index do
   def mount(_params, %{"user_token" => user_token} = _session, socket) do
     user = Accounts.get_user_by_session_token(user_token)
 
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(RosterApp.PubSub, "user:#{user.id}")
+    end
+
     {
       :ok,
       socket
@@ -47,9 +51,22 @@ defmodule RosterAppWeb.ShiftLive.Index do
   end
 
   @impl true
+  def handle_info({:shift_assigned, shift}, socket),
+    do:
+      {:noreply,
+       put_flash(socket, :info, "You've been assigned to a new shift '#{shift.description}'")}
+
+  def handle_info({:shift_deleted, shift}, socket),
+    do:
+      {:noreply,
+       put_flash(socket, :info, "Shift '#{shift.description}' related to you has been removed")}
+
+  @impl true
   def handle_event("delete", %{"id" => id}, socket) do
     shift = Shifts.get_shift!(id)
     {:ok, _} = Shifts.delete_shift(shift)
+
+    RosterAppWeb.ShiftLive.FormComponent.maybe_notify_assignee(shift, :shift_deleted)
 
     {:noreply, stream_delete(socket, :shifts, shift)}
   end
