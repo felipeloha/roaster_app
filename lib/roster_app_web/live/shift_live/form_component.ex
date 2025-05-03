@@ -85,7 +85,8 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
         end_time: end_time
       }) do
     if present?(department_id) && present?(work_type_id) &&
-         present?(start_time) && present?(end_time) && present?(tenant_id) do
+         present?(start_time) && present?(end_time) &&
+         present?(tenant_id) do
       Shifts.eligible_workers_for_shift(%{
         tenant_id: tenant_id,
         work_type_id: work_type_id,

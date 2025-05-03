@@ -15,10 +15,14 @@ alias RosterApp.Accounts.User
 alias RosterApp.Tenants.Tenant
 alias RosterApp.Orgs.{Department, WorkType, UserDepartment, UserQualification}
 
-# pass123
 defmodule RosterApp.Seed do
+  # pass123
   @hashed "$2b$12$n9WY8EkCGA6dR/ual5SyI.jt.xx5hqQZ.eBnU3BvDVQ8osKKJQ.vS"
 
+  @doc """
+  This function builds data for a tenant. It creates a manager and a worker user,
+    With work type and department associations.
+  """
   def build_data_for_tenant(tenant) do
     _manager =
       Repo.insert!(

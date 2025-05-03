@@ -5,6 +5,7 @@ To start your Phoenix server:
   * start the database `docker run --name roaster_app_dev -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=roaster_app_dev -p 5432:5432 -d postgres`
     or `docker start roaster_app_dev`
   * Run `mix setup` to install and setup dependencies
+    * This generates the data in the seed for testing
   * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
