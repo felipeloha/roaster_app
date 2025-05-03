@@ -36,7 +36,9 @@ defmodule RosterAppWeb.AbsencesLiveTest do
       assert_patch(index_live, ~p"/absences")
 
       html = render(index_live)
-      assert html =~ "Absences created successfully"
+
+      assert html =~
+               "Only one absence record can be created for now. Please edit the current absence record."
     end
 
     test "updates absences in listing", %{conn: conn, absences: absences} do

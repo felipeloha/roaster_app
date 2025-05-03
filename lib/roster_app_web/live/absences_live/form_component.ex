@@ -82,19 +82,33 @@ defmodule RosterAppWeb.AbsencesLive.FormComponent do
   end
 
   defp save_absences(socket, :new, absences_params) do
-    full_absences_params = get_full_absences_params(socket, absences_params)
+    user = socket.assigns[:current_user]
 
-    case Orgs.create_absences(full_absences_params) do
-      {:ok, absences} ->
-        notify_parent({:saved, absences})
+    with %RosterApp.Accounts.User{id: user_id} <- user,
+         [] <- Orgs.list_absences(user_id) do
+      full_params = get_full_absences_params(socket, absences_params)
 
+      case Orgs.create_absences(full_params) do
+        {:ok, absences} ->
+          notify_parent({:saved, absences})
+
+          {:noreply,
+           socket
+           |> put_flash(:info, "Absences created successfully")
+           |> push_patch(to: socket.assigns.patch)}
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:noreply, assign(socket, form: to_form(changeset))}
+      end
+    else
+      _ ->
         {:noreply,
          socket
-         |> put_flash(:info, "Absences created successfully")
+         |> put_flash(
+           :error,
+           "Only one absence record can be created for now. Please edit the current absence record."
+         )
          |> push_patch(to: socket.assigns.patch)}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, form: to_form(changeset))}
     end
   end
 
