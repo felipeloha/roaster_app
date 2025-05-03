@@ -7,12 +7,19 @@ defmodule RosterAppWeb.AbsencesLive.Index do
 
   @impl true
   def mount(_params, %{"user_token" => user_token} = _session, socket) do
-    user = Accounts.get_user_by_session_token(user_token)
+    case Accounts.get_user_by_session_token(user_token) do
+      nil ->
+        {:ok, socket |> redirect(to: ~p"/")}
 
-    {:ok,
-     socket
-     |> assign(:current_user, user)
-     |> stream(:absences_collection, Orgs.list_absences(user.id))}
+      user ->
+        socket =
+          socket
+          |> assign(:current_user, user)
+          |> assign(:tenant_id, user.tenant_id)
+          |> stream(:absences_collection, Orgs.list_absences(user.id))
+
+        {:ok, socket}
+    end
   end
 
   @impl true

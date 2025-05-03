@@ -162,6 +162,7 @@ defmodule RosterApp.ShiftsTest do
     end
   end
 
+  # TODO fix or remove
   #  describe "eligible_workers_for_shift/1" do
   #    setup do
   #      {:ok, dept} = Orgs.create_department(%{name: "Ops"})
