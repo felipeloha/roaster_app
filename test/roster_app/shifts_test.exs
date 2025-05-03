@@ -132,6 +132,35 @@ defmodule RosterApp.ShiftsTest do
       assert shift.assigned_user_id == nil
     end
 
+    test "Tries to create two shifts for same user which overlap between them ", %{
+      dept: dept,
+      type: type
+    } do
+      worker_1 =
+        create_user_with_department_and_work_type("worker_abc", dept.tenant_id, dept.id, type.id)
+
+      valid_attrs = %{
+        start_time: ~U[2025-05-01 09:00:00Z],
+        end_time: ~U[2025-05-01 17:00:00Z],
+        description: "Cleaning shift",
+        department_id: dept.id,
+        work_type_id: type.id,
+        tenant_id: 1,
+        assigned_user_id: worker_1.id
+      }
+
+      assert {:ok, %Shift{} = shift} = Shifts.create_shift(valid_attrs)
+      assert shift.description == "Cleaning shift"
+      assert shift.assigned_user_id == worker_1.id
+
+      {:error, %{errors: errors}} =
+        valid_attrs
+        |> Map.merge(%{start_time: ~U[2025-05-01 13:00:00Z], end_time: ~U[2025-05-01 21:00:00Z]})
+        |> Shifts.create_shift()
+
+      assert errors == [assigned_user_id: {"User is not available for this shift", []}]
+    end
+
     test "fails when end_time is before start_time", %{dept: dept, type: type} do
       invalid_attrs = %{
         start_time: ~U[2025-05-01 17:00:00Z],
@@ -375,9 +404,14 @@ defmodule RosterApp.ShiftsTest do
         })
 
       # user 3 with no shifts should be eligible
-      user_3 = create_user_with_department_and_work_type("user_3", user2.tenant_id, dept.id, type.id)
-      user_4 = create_user_with_department_and_work_type("user_4", user2.tenant_id, dept.id, type.id)
-      user_5 = create_user_with_department_and_work_type("user_5", user2.tenant_id, dept.id, type.id)
+      user_3 =
+        create_user_with_department_and_work_type("user_3", user2.tenant_id, dept.id, type.id)
+
+      user_4 =
+        create_user_with_department_and_work_type("user_4", user2.tenant_id, dept.id, type.id)
+
+      user_5 =
+        create_user_with_department_and_work_type("user_5", user2.tenant_id, dept.id, type.id)
 
       # user 4 has a shift in the middle of the new shift
       {:ok, _shift_3} =

@@ -10,8 +10,15 @@ defmodule RosterAppWeb.UserSettingsLive do
       <:subtitle>Manage your account email address and password settings</:subtitle>
     </.header>
 
-    <div class="space-y-12 divide-y">
+    <div class="space-y-12"></div>
+    <div class="space-y-2">
       <p class="text-sm text-gray-500">Role: {@current_user.role}</p>
+      <p class="text-sm text-gray-500">
+        Departments: {Enum.map_join(@current_user.departments, ", ", & &1.name)}
+      </p>
+      <p class="text-sm text-gray-500">
+        Work Types: {Enum.map_join(@current_user.work_types, ", ", & &1.name)}
+      </p>
     </div>
     <div class="space-y-12 divide-y">
       <div>

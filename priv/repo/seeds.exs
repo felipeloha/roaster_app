@@ -24,7 +24,7 @@ defmodule RosterApp.Seed do
     With work type and department associations.
   """
   def build_data_for_tenant(tenant) do
-    _manager =
+    manager =
       Repo.insert!(
         %User{
           email: "manager_#{tenant.id}@example.com",
@@ -58,17 +58,44 @@ defmodule RosterApp.Seed do
         conflict_target: :email
       )
 
+    worker_security =
+      Repo.insert!(
+        %User{
+          email: "worker_security_#{tenant.id}@example.com",
+          hashed_password: @hashed,
+          role: "worker",
+          tenant_id: tenant.id
+        },
+        on_conflict: [
+          set: [
+            hashed_password: @hashed,
+            role: "manager"
+          ]
+        ],
+        conflict_target: :email
+      )
+
     cleaning = Repo.insert!(%WorkType{name: "#{tenant.name} Cleaning", tenant_id: tenant.id})
-    _security = Repo.insert!(%WorkType{name: "#{tenant.name} Security", tenant_id: tenant.id})
+    security = Repo.insert!(%WorkType{name: "#{tenant.name} Security", tenant_id: tenant.id})
 
     maintenance =
       Repo.insert!(%Department{name: "#{tenant.name} Maintenance", tenant_id: tenant.id})
 
-    _support =
+    support =
       Repo.insert!(%Department{name: "#{tenant.name} Customer Support", tenant_id: tenant.id})
 
+    # the manager has both qualifications and departments
+    Repo.insert!(%UserQualification{user_id: manager.id, work_type_id: cleaning.id})
+    Repo.insert!(%UserQualification{user_id: manager.id, work_type_id: security.id})
+    Repo.insert!(%UserDepartment{user_id: manager.id, department_id: maintenance.id})
+    Repo.insert!(%UserDepartment{user_id: manager.id, department_id: support.id})
+
+    # each worker has one qualification and one department
     Repo.insert!(%UserQualification{user_id: worker.id, work_type_id: cleaning.id})
     Repo.insert!(%UserDepartment{user_id: worker.id, department_id: maintenance.id})
+
+    Repo.insert!(%UserQualification{user_id: worker_security.id, work_type_id: security.id})
+    Repo.insert!(%UserDepartment{user_id: worker_security.id, department_id: support.id})
   end
 end
 

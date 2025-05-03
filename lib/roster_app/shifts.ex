@@ -4,8 +4,8 @@ defmodule RosterApp.Shifts do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Changeset
   alias RosterApp.Repo
-
   alias RosterApp.Shifts.Shift
   alias RosterApp.Accounts.User
 
@@ -54,6 +54,7 @@ defmodule RosterApp.Shifts do
   def create_shift(attrs \\ %{}) do
     %Shift{}
     |> Shift.changeset(attrs)
+    |> validate_overlapping_user_shifts()
     |> Repo.insert()
   end
 
@@ -107,6 +108,7 @@ defmodule RosterApp.Shifts do
   def days_of_week_between(start_date, end_date) do
     start_date
     |> Date.range(end_date)
+    # Map day of the weeks to Postgres values (0-6)
     |> Enum.map(&(&1 |> Date.day_of_week() |> rem(@total_days_in_week)))
   end
 
@@ -118,7 +120,61 @@ defmodule RosterApp.Shifts do
         work_type_id: type_id
       }) do
     # TODO implement timezone awareness
-    # TODO implement excluding overlapping shifts
+
+    tenant_id
+    |> get_eligible_workers_base_query(dept_id, type_id, start_time, end_time)
+    |> Repo.all()
+  end
+
+  defp is_user_available_for_shift?(user_id, tenant_id, dept_id, type_id, start_time, end_time) do
+    tenant_id
+    |> get_eligible_workers_base_query(dept_id, type_id, start_time, end_time)
+    |> where([user], user.id == ^user_id)
+    |> limit(1)
+    |> Repo.one()
+    |> case do
+      nil -> false
+      _ -> true
+    end
+  end
+
+  defp validate_overlapping_user_shifts(%{valid?: false} = changeset), do: changeset
+
+  defp validate_overlapping_user_shifts(changeset) do
+    assigned_user_id = Changeset.get_field(changeset, :assigned_user_id)
+
+    if assigned_user_id do
+      validate_overlapping_user_shifts_impl(changeset, assigned_user_id)
+    else
+      changeset
+    end
+  end
+
+  defp validate_overlapping_user_shifts_impl(changeset, assigned_user_id) do
+    tenant_id = Changeset.get_field(changeset, :tenant_id)
+    start_time = Changeset.get_field(changeset, :start_time)
+    end_time = Changeset.get_field(changeset, :end_time)
+    department_id = Changeset.get_field(changeset, :department_id)
+    work_type_id = Changeset.get_field(changeset, :work_type_id)
+
+    %{
+      tenant_id: tenant_id,
+      start_time: start_time,
+      end_time: end_time,
+      department_id: department_id,
+      work_type_id: work_type_id
+    }
+
+    assigned_user_id
+    |> is_user_available_for_shift?(tenant_id, department_id, work_type_id, start_time, end_time)
+    |> if do
+      changeset
+    else
+      Changeset.add_error(changeset, :assigned_user_id, "User is not available for this shift")
+    end
+  end
+
+  defp get_eligible_workers_base_query(tenant_id, dept_id, type_id, start_time, end_time) do
     shift_days = days_of_week_between(start_time, end_time)
 
     from(user in User, as: :user)
@@ -128,6 +184,7 @@ defmodule RosterApp.Shifts do
       [user, department: department, work_type: work_type],
       user.tenant_id == ^tenant_id and department.id == ^dept_id and work_type.id == ^type_id
     )
+    # Should exclude users which absences overlap with the current shift
     |> where(
       [user],
       not exists(
@@ -138,6 +195,7 @@ defmodule RosterApp.Shifts do
           select: 1
       )
     )
+    # Should exclude users that are already assigned to a shift that overlaps current shift
     |> where(
       [user],
       not exists(
@@ -148,6 +206,5 @@ defmodule RosterApp.Shifts do
           select: 1
       )
     )
-    |> Repo.all()
   end
 end
