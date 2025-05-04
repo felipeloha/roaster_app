@@ -64,11 +64,6 @@ defmodule RosterAppWeb.AbsencesLive.FormComponent do
      end)}
   end
 
-  defp previous_days(%{assigns: %{form: %{source: %{changes: %{unavailable_days: days}}}}}),
-    do: days
-
-  defp previous_days(_), do: []
-
   @impl true
   def handle_event("validate", %{"absences" => absences_params} = _opts, socket) do
     full_absences_params = get_full_absences_params(socket, absences_params)

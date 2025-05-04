@@ -3,7 +3,7 @@ This file describes the prompts used in chatgpt to implement this project
 ## Requirement analysis
 the following text describes the goal and requirements for an application that should be implemented in elixir liveview:
 
-Hier was the task description in PDF
+Here was the task description in PDF
 
 can you please do the following?
 - summarize the goal of the application
@@ -225,17 +225,6 @@ it forgot the orgs context, the work types, departments, etc.
 and forgot some functions in accounts
 
 
-#TODO
-- paginate list all XXX
-- permission management
-- remove phoenix landing page
-- store dates with timezone
-- registration broken as tenant is missing
-
-decision points:
-- absences are just an array of days of the week. 
-this is a big product debt as people might have specific absences for weeks or the absence could be time related
-- solve the timezone problem. 
-Not even personio does it right, and I didn't put time on it in favor of building the core functionality for one timezone
-
-Around 4-5h so far
+## End
+At this point I tried to use GitHub Copilot to help me with the implementation, but it didn't work out very well.
+I continued on my own.
