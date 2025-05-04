@@ -94,6 +94,9 @@ Here is a list of the features that were implemented:
     - Implement UI/UX departments, work types and users
 - Better permissions management in the backend
     - Block specific operations on backend level depending on the user role
+- Improve pub/sub notifications
+  - Right now is only implemented in the shifts view
+  - Only the shift assignment is implemented. Shift creation is missing
 - Use the timezone in the frontend and work with it in the backend
 - Make the UI/UX much better in general
 - Load tests and possible optimizations
