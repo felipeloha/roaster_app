@@ -189,6 +189,7 @@ defmodule RosterApp.Shifts do
     end
   end
 
+  # refactoring this big query with bindings into smaller functions would make a mess with the parent_as binding
   defp get_eligible_workers_base_query(tenant_id, dept_id, type_id, start_time, end_time) do
     shift_days = days_of_week_between(start_time, end_time)
 

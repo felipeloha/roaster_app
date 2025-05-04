@@ -95,3 +95,4 @@ Here is a list of the features that were implemented:
     - Block specific operations on backend level depending on the user role
 - Use the timezone in the frontend and work with it in the backend
 - Make the UI/UX much better in general
+- Load tests and possible optimizations
