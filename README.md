@@ -1,6 +1,6 @@
 # RosterApp
 
-
+RosterApp is a web application for work force management.
 
 ## Getting started
 
@@ -35,9 +35,16 @@ Design and implementation decisions:
 - There is a tenant schema that is used to separate the data of different tenants supporting multi-tenancy.
 - Absences are an array of days of the week.
 - Shifts have timestamps with timezone but the timezone is not entered from the UI for simplicity reasons.
-- Some UI/UX elements were left out due to time constraints.
+- Some UI/UX elements were left out and I did not put much time in the UX due to time constraints 
 
 Here is a list of the features that were implemented:
+- General UI
+  - The menu items are on the top right: account settings, shifts, absences
+  - The user details such as role, department and work type are shown in the `account settings`
+  - Absence management is done under the `absences` menu item
+  - Shift management is done under the `shifts` menu item
+  - The users eligible to be assigned to a shift are calculated when the shift attributes are fully entered or modified
+  - Shift assignment is done in the edit shift view
 - User schema with authentication using the phoenix live view standard
 - The following requirements were implemented in the backend. Not all of them have a UI:
   - Tenants
@@ -79,3 +86,4 @@ Here is a list of the features that were implemented:
 - Better permissions management in the backend
     - Block specific operations on backend level depending on the user role
 - Use the timezone in the frontend and work with it in the backend
+- Make the UI/UX much better in general
