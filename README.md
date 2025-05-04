@@ -6,7 +6,15 @@ RosterApp is a web application for work force management.
 
 To start the application:
 
-  * start the database `docker run --name roaster_app_dev -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=roaster_app_dev -p 5432:5432 -d postgres` or `docker start roaster_app_dev`
+  * start the database 
+```bash 
+docker run --name roaster_app_dev -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=roaster_app_dev -p 5432:5432 -d postgres
+``` 
+or 
+```bash 
+docker start roaster_app_dev
+```
+
   * Run `mix setup` to install and setup dependencies
     * This generates the data in the seed for testing. 
     See [priv/repo/seeds.exs](priv/repo/seeds.exs) for the data generated with credentials for the different user roles.
