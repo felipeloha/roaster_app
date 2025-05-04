@@ -10,7 +10,7 @@ To start the application:
 ```bash 
 docker run --name roaster_app_dev -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=roaster_app_dev -p 5432:5432 -d postgres
 ``` 
-or 
+or if the container is already created:
 ```bash 
 docker start roaster_app_dev
 ```

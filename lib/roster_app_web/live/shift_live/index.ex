@@ -9,7 +9,7 @@ defmodule RosterAppWeb.ShiftLive.Index do
   def mount(_params, %{"user_token" => user_token} = _session, socket) do
     user = Accounts.get_user_by_session_token(user_token)
 
-    if connected?(socket) do
+    if not is_nil(user) and connected?(socket) do
       Phoenix.PubSub.subscribe(RosterApp.PubSub, "user:#{user.id}")
     end
 

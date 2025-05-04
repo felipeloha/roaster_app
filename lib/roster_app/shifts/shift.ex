@@ -63,9 +63,9 @@ defmodule RosterApp.Shifts.Shift do
       )
     end)
     |> validate_change(:end_time, fn :end_time, end_time ->
-      start_time = Map.get(attrs, :start_time)
+      start_time = get_field(changeset, :start_time)
 
-      if start_time && DateTime.compare(end_time, start_time) != :gt do
+      if not is_nil(start_time) && DateTime.compare(end_time, start_time) != :gt do
         [end_time: "must be after start time"]
       else
         []

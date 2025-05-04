@@ -8,14 +8,18 @@ defmodule RosterAppWeb.ShiftLiveTest do
   @create_attrs %{
     description: "some description",
     start_time: "2025-04-26T06:12:00Z",
-    end_time: "2025-04-26T06:12:00Z"
+    end_time: "2025-04-27T06:12:00Z"
   }
   @update_attrs %{
     description: "some updated description",
     start_time: "2025-04-27T06:12:00Z",
+    end_time: "2025-04-28T06:12:00Z"
+  }
+  @invalid_attrs %{
+    description: nil,
+    start_time: "2025-04-27T06:12:00Z",
     end_time: "2025-04-27T06:12:00Z"
   }
-  @invalid_attrs %{description: nil, start_time: nil, end_time: nil}
 
   describe "Index" do
     setup %{conn: conn} do
@@ -57,7 +61,6 @@ defmodule RosterAppWeb.ShiftLiveTest do
              |> render_submit()
 
       assert_patch(index_live, ~p"/shifts")
-      # assert render(index_live) =~ "can't be blank"
 
       html = render(index_live)
       assert html =~ "Shift created successfully"
