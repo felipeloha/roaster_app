@@ -78,18 +78,19 @@ Here is a list of the features that were implemented:
 ![public.png](public.png)
 
 ### Opportunities for Improvement
+- Add logger and logs to the application
 - Shift management
+  - Handle shift conflicts when modifying shifts or absences
   - Improve the shift UI/UX to see the shifts and absences better. Maybe a calendar view would fit this
   - Paginate by day, week, month
   - Ability to filter by different attributes
   - Better UX than using the basic edit to assign shifts to users
   - Handle concurrency in shift operations
-  - Handle shift conflicts when modifying shifts or absences
 - Improve absence management
   - Add the ability to add partial absences
   - Add the ability to add absences for a specific date range
 - Account management
-    - Create superadmin and admins roles being able to create tenants, departments, work types and users
+    - Create super-admin and admins roles being able to create tenants, departments, work types and users
     - Implement UI/UX departments, work types and users
 - Better permissions management in the backend
     - Block specific operations on backend level depending on the user role
