@@ -10,7 +10,9 @@ defmodule RosterAppWeb.ShiftLive.Index do
     user = Accounts.get_user_by_session_token(user_token)
 
     if not is_nil(user) and connected?(socket) do
+      # Subscribe to both user-specific and tenant-wide updates
       Phoenix.PubSub.subscribe(RosterApp.PubSub, "user:#{user.id}")
+      Phoenix.PubSub.subscribe(RosterApp.PubSub, "tenant:#{user.tenant_id}")
     end
 
     {
@@ -51,22 +53,36 @@ defmodule RosterAppWeb.ShiftLive.Index do
   end
 
   @impl true
-  def handle_info({:shift_assigned, shift}, socket),
-    do:
-      {:noreply,
-       put_flash(socket, :info, "You've been assigned to a new shift '#{shift.description}'")}
+  def handle_info({:shift_created, shift}, socket) do
+    {:noreply, stream_insert(socket, :shifts, shift)}
+  end
 
-  def handle_info({:shift_deleted, shift}, socket),
-    do:
-      {:noreply,
-       put_flash(socket, :info, "Shift '#{shift.description}' related to you has been removed")}
+  @impl true
+  def handle_info({:shift_updated, shift}, socket) do
+    {:noreply, stream_insert(socket, :shifts, shift)}
+  end
+
+  @impl true
+  def handle_info({:shift_deleted, shift}, socket) do
+    {:noreply, stream_delete(socket, :shifts, shift)}
+  end
+
+  @impl true
+  def handle_info({:shift_assigned, shift}, socket) do
+    {:noreply, stream_insert(socket, :shifts, shift)}
+  end
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
     shift = Shifts.get_shift!(id)
     {:ok, _} = Shifts.delete_shift(shift)
 
-    RosterAppWeb.ShiftLive.FormComponent.maybe_notify_assignee(shift, :shift_deleted)
+    # Broadcast to tenant channel instead of just the assignee
+    Phoenix.PubSub.broadcast(
+      RosterApp.PubSub,
+      "tenant:#{socket.assigns.tenant_id}",
+      {:shift_deleted, shift}
+    )
 
     {:noreply, stream_delete(socket, :shifts, shift)}
   end

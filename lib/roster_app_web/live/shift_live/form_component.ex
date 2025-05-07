@@ -188,8 +188,24 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
   defp save_shift(socket, :edit, shift_params) do
     case Shifts.update_shift(socket.assigns.shift, shift_params) do
       {:ok, shift} ->
-        maybe_notify_assignee(shift)
         shift = Repo.preload(shift, :assigned_user)
+
+        # Broadcast to tenant channel
+        Phoenix.PubSub.broadcast(
+          RosterApp.PubSub,
+          "tenant:#{socket.assigns.tenant_id}",
+          {:shift_updated, shift}
+        )
+
+        # Also notify the assignee if there is one
+        if not is_nil(shift.assigned_user_id) do
+          Phoenix.PubSub.broadcast(
+            RosterApp.PubSub,
+            "user:#{shift.assigned_user_id}",
+            {:shift_assigned, shift}
+          )
+        end
+
         notify_parent({:saved, shift})
 
         {:noreply,
@@ -205,8 +221,24 @@ defmodule RosterAppWeb.ShiftLive.FormComponent do
   defp save_shift(socket, :new, shift_params) do
     case Shifts.create_shift(shift_params) do
       {:ok, shift} ->
-        maybe_notify_assignee(shift)
         shift = Repo.preload(shift, :assigned_user)
+
+        # Broadcast to tenant channel
+        Phoenix.PubSub.broadcast(
+          RosterApp.PubSub,
+          "tenant:#{socket.assigns.tenant_id}",
+          {:shift_created, shift}
+        )
+
+        # Also notify the assignee if there is one
+        if not is_nil(shift.assigned_user_id) do
+          Phoenix.PubSub.broadcast(
+            RosterApp.PubSub,
+            "user:#{shift.assigned_user_id}",
+            {:shift_assigned, shift}
+          )
+        end
+
         notify_parent({:saved, shift})
 
         {:noreply,

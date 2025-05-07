@@ -76,6 +76,7 @@ defmodule RosterAppWeb.Router do
 
     delete "/users/log_out", UserSessionController, :delete
 
+    # I could have used this in the shifts and absences live views
     live_session :current_user,
       on_mount: [{RosterAppWeb.UserAuth, :mount_current_user}] do
       live "/users/confirm/:token", UserConfirmationLive, :edit
