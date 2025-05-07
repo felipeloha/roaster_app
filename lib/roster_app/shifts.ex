@@ -20,10 +20,53 @@ defmodule RosterApp.Shifts do
 
   """
   def list_shifts(%{role: "worker", tenant_id: tenant_id, id: user_id}) do
+    # Get user's departments and work types
+    user =
+      Repo.get!(User, user_id)
+      |> Repo.preload([:departments, :work_types])
+
+    user_departments = Enum.map(user.departments, & &1.id)
+    user_work_types = Enum.map(user.work_types, & &1.id)
+
+    # TODO: Refactor this query to reuse the logic from get_eligible_workers_base_query
+    # The following conditions are duplicated:
+    # 1. Checking for absences overlap
+    # 2. Checking for overlapping shifts
+    # Consider extracting these into a shared function that can be used by both
+    # list_shifts and get_eligible_workers_base_query
     Repo.all(
       from s in Shift,
+        as: :shift,
         where: s.tenant_id == ^tenant_id,
         where: is_nil(s.assigned_user_id) or s.assigned_user_id == ^user_id,
+        where: s.department_id in ^user_departments,
+        where: s.work_type_id in ^user_work_types,
+        # Exclude shifts that overlap with user's absences
+        where:
+          not exists(
+            from a in RosterApp.Orgs.Absences,
+              join:
+                d in fragment(
+                  "SELECT generate_series(?, ?, '1 day'::interval) as day",
+                  parent_as(:shift).start_time,
+                  parent_as(:shift).end_time
+                ),
+              where:
+                a.user_id == ^user_id and
+                  fragment("? && array[extract(dow from ?)::integer]", a.unavailable_days, d.day),
+              select: 1
+          ),
+        # Exclude shifts that overlap with user's other assigned shifts
+        where:
+          not exists(
+            from os in Shift,
+              where:
+                os.assigned_user_id == ^user_id and
+                  os.id != parent_as(:shift).id and
+                  os.end_time >= parent_as(:shift).start_time and
+                  os.start_time <= parent_as(:shift).end_time,
+              select: 1
+          ),
         order_by: [desc: fragment("assigned_user_id IS NULL"), asc: s.start_time],
         preload: [:assigned_user]
     )

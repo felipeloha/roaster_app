@@ -5,7 +5,10 @@ defmodule RosterApp.ShiftsTest do
   alias Shifts.Shift
   alias RosterApp.Orgs
   alias RosterApp.Accounts
+  alias RosterApp.Repo
+  alias RosterApp.Tenants.Tenant
   import RosterApp.AccountsFixtures
+  import RosterApp.ShiftsFixtures
 
   describe "shifts" do
     import RosterApp.ShiftsFixtures
@@ -201,7 +204,7 @@ defmodule RosterApp.ShiftsTest do
 
   describe "absences with shifts" do
     setup do
-      tenant = Repo.insert!(%RosterApp.Tenants.Tenant{name: "Test-Tenant"})
+      tenant = Repo.insert!(%Tenant{name: "Test-Tenant"})
       {:ok, dept} = Orgs.create_department(%{name: "Logistics", tenant_id: tenant.id})
       {:ok, type} = Orgs.create_work_type(%{name: "Delivery", tenant_id: tenant.id})
 
@@ -384,6 +387,280 @@ defmodule RosterApp.ShiftsTest do
       # User 1 can not be assigned because its already busy with shift 1
       assert user1.id not in eligible_ids
       assert Enum.sort(eligible_ids) == Enum.sort([user2.id, user_3.id, user_5.id])
+    end
+  end
+
+  describe "list_shifts/1" do
+    test "lists all shifts for managers" do
+      tenant = Repo.insert!(%Tenant{name: "Test-Tenant"})
+      manager = user_fixture(%{role: "manager", tenant_id: tenant.id})
+      worker = user_fixture(%{role: "worker", tenant_id: tenant.id})
+      {:ok, department} = department_fixture(%{tenant_id: tenant.id})
+      {:ok, work_type} = work_type_fixture(%{tenant_id: tenant.id})
+
+      # Assign worker to department and work type to make them available
+      {:ok, _} = Orgs.assign_user_to_department(worker.id, department.id)
+      {:ok, _} = Orgs.assign_user_to_work_type(worker.id, work_type.id)
+
+      # Assign manager to department and work type to make them available
+      {:ok, _} = Orgs.assign_user_to_department(manager.id, department.id)
+      {:ok, _} = Orgs.assign_user_to_work_type(manager.id, work_type.id)
+
+      # Create shifts with different assignments
+      {:ok, shift1} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 06:12:00Z],
+          end_time: ~U[2025-04-26 06:13:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id
+        })
+
+      {:ok, shift2} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 07:12:00Z],
+          end_time: ~U[2025-04-26 07:13:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id,
+          assigned_user_id: worker.id
+        })
+
+      {:ok, shift3} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 08:12:00Z],
+          end_time: ~U[2025-04-26 08:13:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id,
+          assigned_user_id: manager.id
+        })
+
+      shifts = Shifts.list_shifts(%{role: "manager", tenant_id: tenant.id})
+      assert length(shifts) == 3
+
+      assert Enum.map(shifts, & &1.id) |> Enum.sort() ==
+               [shift1.id, shift2.id, shift3.id] |> Enum.sort()
+    end
+
+    test "lists only eligible shifts for workers" do
+      tenant = Repo.insert!(%Tenant{name: "Test-Tenant"})
+      worker = user_fixture(%{role: "worker", tenant_id: tenant.id})
+      {:ok, department} = department_fixture(%{tenant_id: tenant.id})
+      {:ok, work_type} = work_type_fixture(%{tenant_id: tenant.id})
+
+      # Assign worker to department and work type
+      {:ok, _} = Orgs.assign_user_to_department(worker.id, department.id)
+      {:ok, _} = Orgs.assign_user_to_work_type(worker.id, work_type.id)
+
+      # Create shifts
+      {:ok, shift1} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 06:12:00Z],
+          end_time: ~U[2025-04-26 06:13:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id
+        })
+
+      {:ok, shift2} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 07:12:00Z],
+          end_time: ~U[2025-04-26 07:13:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id,
+          assigned_user_id: worker.id
+        })
+
+      # Create a shift in a different department that worker is not assigned to
+      {:ok, department2} = department_fixture(%{tenant_id: tenant.id})
+
+      {:ok, _shift3} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 08:12:00Z],
+          end_time: ~U[2025-04-26 08:13:00Z],
+          work_type_id: work_type.id,
+          department_id: department2.id,
+          tenant_id: tenant.id
+        })
+
+      shifts = Shifts.list_shifts(%{role: "worker", tenant_id: tenant.id, id: worker.id})
+      assert length(shifts) == 2
+      assert Enum.map(shifts, & &1.id) |> Enum.sort() == [shift1.id, shift2.id] |> Enum.sort()
+    end
+
+    test "filters out shifts for departments worker is not assigned to" do
+      tenant = Repo.insert!(%Tenant{name: "Test-Tenant"})
+      worker = user_fixture(%{role: "worker", tenant_id: tenant.id})
+      {:ok, department1} = department_fixture(%{tenant_id: tenant.id})
+      {:ok, department2} = department_fixture(%{tenant_id: tenant.id})
+      {:ok, work_type} = work_type_fixture(%{tenant_id: tenant.id})
+
+      # Assign worker to only department1
+      {:ok, _} = Orgs.assign_user_to_department(worker.id, department1.id)
+      {:ok, _} = Orgs.assign_user_to_work_type(worker.id, work_type.id)
+
+      # Create shifts in both departments
+      {:ok, shift1} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 06:12:00Z],
+          end_time: ~U[2025-04-26 06:13:00Z],
+          work_type_id: work_type.id,
+          department_id: department1.id,
+          tenant_id: tenant.id
+        })
+
+      {:ok, _shift2} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 07:12:00Z],
+          end_time: ~U[2025-04-26 07:13:00Z],
+          work_type_id: work_type.id,
+          department_id: department2.id,
+          tenant_id: tenant.id
+        })
+
+      shifts = Shifts.list_shifts(%{role: "worker", tenant_id: tenant.id, id: worker.id})
+      assert length(shifts) == 1
+      assert hd(shifts).id == shift1.id
+    end
+
+    test "filters out shifts for work types worker is not qualified for" do
+      tenant = Repo.insert!(%Tenant{name: "Test-Tenant"})
+      worker = user_fixture(%{role: "worker", tenant_id: tenant.id})
+      {:ok, department} = department_fixture(%{tenant_id: tenant.id})
+      {:ok, work_type1} = work_type_fixture(%{tenant_id: tenant.id})
+      {:ok, work_type2} = work_type_fixture(%{tenant_id: tenant.id})
+
+      # Assign worker to only work_type1
+      {:ok, _} = Orgs.assign_user_to_department(worker.id, department.id)
+      {:ok, _} = Orgs.assign_user_to_work_type(worker.id, work_type1.id)
+
+      # Create shifts for both work types
+      {:ok, shift1} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 06:12:00Z],
+          end_time: ~U[2025-04-26 06:13:00Z],
+          work_type_id: work_type1.id,
+          department_id: department.id,
+          tenant_id: tenant.id
+        })
+
+      {:ok, _shift2} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2025-04-26 07:12:00Z],
+          end_time: ~U[2025-04-26 07:13:00Z],
+          work_type_id: work_type2.id,
+          department_id: department.id,
+          tenant_id: tenant.id
+        })
+
+      shifts = Shifts.list_shifts(%{role: "worker", tenant_id: tenant.id, id: worker.id})
+      assert length(shifts) == 1
+      assert hd(shifts).id == shift1.id
+    end
+
+    test "filters out shifts that overlap with worker's absences" do
+      tenant = Repo.insert!(%Tenant{name: "Test-Tenant"})
+      worker = user_fixture(%{role: "worker", tenant_id: tenant.id})
+      {:ok, department} = department_fixture(%{tenant_id: tenant.id})
+      {:ok, work_type} = work_type_fixture(%{tenant_id: tenant.id})
+
+      # Assign worker to department and work type
+      {:ok, _} = Orgs.assign_user_to_department(worker.id, department.id)
+      {:ok, _} = Orgs.assign_user_to_work_type(worker.id, work_type.id)
+
+      # Create an absence for Monday (1)
+      {:ok, _} =
+        Orgs.create_absences(%{
+          user_id: worker.id,
+          tenant_id: tenant.id,
+          unavailable_days: [1]
+        })
+
+      # Create shifts
+      {:ok, _monday_shift} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2024-04-01 09:00:00Z],
+          end_time: ~U[2024-04-01 17:00:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id
+        })
+
+      {:ok, tuesday_shift} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2024-04-02 09:00:00Z],
+          end_time: ~U[2024-04-02 17:00:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id
+        })
+
+      shifts = Shifts.list_shifts(%{role: "worker", tenant_id: tenant.id, id: worker.id})
+      assert length(shifts) == 1
+      assert hd(shifts).id == tuesday_shift.id
+    end
+
+    test "filters out shifts that overlap with worker's other assigned shifts" do
+      tenant = Repo.insert!(%Tenant{name: "Test-Tenant"})
+      worker = user_fixture(%{role: "worker", tenant_id: tenant.id})
+      {:ok, department} = department_fixture(%{tenant_id: tenant.id})
+      {:ok, work_type} = work_type_fixture(%{tenant_id: tenant.id})
+
+      # Assign worker to department and work type
+      {:ok, _} = Orgs.assign_user_to_department(worker.id, department.id)
+      {:ok, _} = Orgs.assign_user_to_work_type(worker.id, work_type.id)
+
+      # Create an existing shift for the worker
+      {:ok, existing_shift} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2024-04-01 09:00:00Z],
+          end_time: ~U[2024-04-01 17:00:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id,
+          assigned_user_id: worker.id
+        })
+
+      # Create overlapping shifts
+      {:ok, _overlapping_shift} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2024-04-01 10:00:00Z],
+          end_time: ~U[2024-04-01 16:00:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id
+        })
+
+      {:ok, non_overlapping_shift} =
+        Shifts.create_shift(%{
+          description: "some description",
+          start_time: ~U[2024-04-02 09:00:00Z],
+          end_time: ~U[2024-04-02 17:00:00Z],
+          work_type_id: work_type.id,
+          department_id: department.id,
+          tenant_id: tenant.id
+        })
+
+      shifts = Shifts.list_shifts(%{role: "worker", tenant_id: tenant.id, id: worker.id})
+      assert length(shifts) == 2
+      shift_ids = Enum.map(shifts, & &1.id) |> Enum.sort()
+      assert shift_ids == [existing_shift.id, non_overlapping_shift.id] |> Enum.sort()
     end
   end
 
